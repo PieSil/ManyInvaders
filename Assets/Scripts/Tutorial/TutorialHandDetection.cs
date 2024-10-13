@@ -1,33 +1,39 @@
 using Mediapipe.Unity.CoordinateSystem;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Resources;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
 using Stopwatch = System.Diagnostics.Stopwatch;
 
-namespace Mediapipe.Unity.Tutorial {
+namespace Mediapipe.Unity.HandDetection {
     public class HandDetection : MonoBehaviour {
 
         [SerializeField] private TextAsset _configAsset;
-        [SerializeField] private RawImage _screen;
-        [SerializeField] private MultiHandLandmarkListAnnotationController _handLandmarksAnnotationController;
+        //[SerializeField] private RawImage _screen;
         [SerializeField] private int _fps;
-        private int _width;
-        private int _height;
         CalculatorGraph _graph;
 
         private WebCamTexture _webCamTexture;
+        public WebCamTexture WebCamTexture => _webCamTexture;
         private Texture2D _inputTexture;
         private Color32[] _inputPixelData;
         private IResourceManager _resourceManager;
         private OutputStream<List<NormalizedLandmarkList>> _handLandmarksStream;
+
         private List<NormalizedLandmarkList> _handLandmarks = null;
+        public List<NormalizedLandmarkList> HandLandmarks => _handLandmarks;
+
+        public event Action<EventArgs> TrackerInitedEvent;
+        public event Action<LandmarksEventArgs> LandmarksChangedEvent;
 
         Stopwatch _stopwatch;
 
+        /*
         private void Awake() {
             float fwidth = _screen.rectTransform.rect.width + 1;
             float fheight = _screen.rectTransform.rect.height + 1;
@@ -43,6 +49,7 @@ namespace Mediapipe.Unity.Tutorial {
 
             Debug.Log($"width is {_width}\nheight is {_height}");
         }
+        */
 
         private IEnumerator Start() {
             if (WebCamTexture.devices.Length == 0) {
@@ -50,15 +57,16 @@ namespace Mediapipe.Unity.Tutorial {
             }
 
             var webCamDevice = WebCamTexture.devices[0];
-            _webCamTexture = new WebCamTexture(webCamDevice.name, _width, _height, _fps);
+
+            _webCamTexture = new WebCamTexture(webCamDevice.name);
+
             _webCamTexture.Play();
 
-            yield return new WaitUntil(() => _webCamTexture.width >= 16);
+            yield return new WaitForSeconds(2); //wait a reasonable amount of time for _webCamtexture to fully initialize, not very clean but it works
+            yield return new WaitUntil(() => _webCamTexture.width >= 16); //double check
 
             _inputTexture = new Texture2D(_webCamTexture.width, _webCamTexture.height, TextureFormat.RGBA32, false);
             _inputPixelData = new Color32[_webCamTexture.width * _webCamTexture.height];
-
-            _screen.texture = _webCamTexture;
 
             _resourceManager = new StreamingAssetsResourceManager();
             yield return _resourceManager.PrepareAssetAsync("palm_detection_full.bytes");
@@ -74,6 +82,10 @@ namespace Mediapipe.Unity.Tutorial {
             _graph.StartRun(GetSidePacket());
             _stopwatch.Start();
 
+            if (TrackerInitedEvent != null) {
+                TrackerInitedEvent(new EventArgs());
+            }
+
             StartCoroutine(DetectCoroutine());
         }
 
@@ -88,20 +100,12 @@ namespace Mediapipe.Unity.Tutorial {
             return sidePacket;
         }
 
-        private void Update() {
-            if (Input.GetKeyDown(KeyCode.Space)) {
-                ToggleDisplayWebCam();
-            }
-        }
-
-        private void ToggleDisplayWebCam() {
-            _screen.enabled = !_screen.enabled;
-        }
-
         private IEnumerator DetectCoroutine() {
             long currentTimeStamp;
 
             while (true) {
+
+                _graph.WaitUntilIdle();
                 _inputTexture.SetPixels32(_webCamTexture.GetPixels32(_inputPixelData));
 
                 var imageFrame = new ImageFrame(ImageFormat.Types.Format.Srgba, _webCamTexture.width, _webCamTexture.height, _webCamTexture.width * 4, _inputTexture.GetRawTextureData<byte>());
@@ -130,9 +134,11 @@ namespace Mediapipe.Unity.Tutorial {
                     _handLandmarks = null;
                 }
 
-                _handLandmarksAnnotationController.DrawNow(_handLandmarks);
+                if (LandmarksChangedEvent != null) {
+                    LandmarksChangedEvent(new LandmarksEventArgs(_handLandmarks));
+                }
 
-                _graph.WaitUntilIdle();
+                //_handLandmarksAnnotationController.DrawNow(_handLandmarks);
             }
         }
 
@@ -158,5 +164,24 @@ namespace Mediapipe.Unity.Tutorial {
             }
         }
 
+    }
+
+    public class LandmarksEventArgs : EventArgs {
+
+        public List<NormalizedLandmarkList> landmarks { get; private set; }
+
+        public LandmarksEventArgs(List<NormalizedLandmarkList> landmarks) {
+            if (landmarks != null) {
+                this.landmarks = new List<NormalizedLandmarkList>(landmarks.Count);
+
+                // deep copy
+                foreach (var item in landmarks) {
+                    this.landmarks.Add(item.Clone());
+                }
+            } else {
+                landmarks = null;
+            }
+
+        }
     }
 }
