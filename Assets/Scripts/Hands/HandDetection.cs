@@ -60,6 +60,7 @@ namespace Mediapipe.Unity.HandDetection {
             var webCamDevice = WebCamTexture.devices[0];
 
             _webCamTexture = new WebCamTexture(webCamDevice.name);
+            _webCamTexture.requestedFPS = _fps;
 
             _webCamTexture.Play();
 
