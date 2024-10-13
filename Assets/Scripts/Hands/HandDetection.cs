@@ -3,6 +3,7 @@ using Mediapipe.Unity.CoordinateSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.SymbolStore;
 using System.Resources;
 using TMPro;
 using Unity.VisualScripting;
@@ -26,8 +27,10 @@ namespace Mediapipe.Unity.HandDetection {
         private Color32[] _inputPixelData;
         private IResourceManager _resourceManager;
         private OutputStream<List<NormalizedLandmarkList>> _handLandmarksStream;
+        private OutputStream<List<ClassificationList>> _handenessStream;
 
         private List<NormalizedLandmarkList> _handLandmarks = null;
+        private List<ClassificationList> _handedness = null;
 
         public event Action<EventArgs> TrackerInitedEvent;
         public event Action<HandEventArgs> LandmarksChangedEvent;
@@ -79,8 +82,10 @@ namespace Mediapipe.Unity.HandDetection {
 
             _graph = new CalculatorGraph(_configAsset.text);
             _handLandmarksStream = new OutputStream<List<NormalizedLandmarkList>>(_graph, "landmarks");
+            _handenessStream = new OutputStream<List<ClassificationList>>(_graph, "handedness");
 
             _handLandmarksStream.StartPolling();
+            _handenessStream.StartPolling();
             _graph.StartRun(GetSidePacket());
             _stopwatch.Start();
 
@@ -102,6 +107,15 @@ namespace Mediapipe.Unity.HandDetection {
             return sidePacket;
         }
 
+        public string FlipLabel(string label) {
+            if (label == "Right") {
+                return "Left";
+            } else if (label == "Left") {
+                return "Right";
+            } else {
+                return label;
+            }
+        }
         private IEnumerator DetectCoroutine() {
             long currentTimeStamp;
 
@@ -115,7 +129,12 @@ namespace Mediapipe.Unity.HandDetection {
                 _graph.AddPacketToInputStream("input_video", Packet.CreateImageFrameAt(imageFrame, currentTimeStamp));
 
                 var landmarksTask = _handLandmarksStream.WaitNextAsync();
-                yield return new WaitUntil(() => landmarksTask.IsCompleted);
+                var handednessTask = _handenessStream.WaitNextAsync();
+
+                var globalTask = System.Threading.Tasks.Task.WhenAll(landmarksTask, handednessTask);
+
+                //yield return new WaitUntil(() => landmarksTask.IsCompleted);
+                yield return new WaitUntil(() => globalTask.IsCompleted);
 
                 var landmarksPacket = landmarksTask.Result.packet;
                 
@@ -136,8 +155,24 @@ namespace Mediapipe.Unity.HandDetection {
                     _handLandmarks = null;
                 }
 
+                var handednessPacket = handednessTask.Result.packet;
+
+                if (handednessPacket != null) {
+                    _handedness = handednessPacket.Get(ClassificationList.Parser);
+                    int i = 0;
+                    foreach (var item in _handedness) {
+                        foreach (var classification in item.Classification) {
+                            classification.Label = FlipLabel(classification.Label);
+                            Debug.Log($"handedness item {i} is: {item}");
+                        }
+                        i++;
+                    }
+                } else {
+                    _handedness = null;
+                }
+
                 if (LandmarksChangedEvent != null) {
-                    LandmarksChangedEvent(new HandEventArgs(_handLandmarks));
+                    LandmarksChangedEvent(new HandEventArgs(new HandData(_handLandmarks, _handedness)));
                 }
 
                 //_handLandmarksAnnotationController.DrawNow(_handLandmarks);
@@ -153,6 +188,9 @@ namespace Mediapipe.Unity.HandDetection {
 
             _handLandmarksStream?.Dispose();
             _handLandmarksStream = null;
+
+            _handenessStream?.Dispose();
+            _handenessStream = null;
 
             if (_graph != null) {
                 try {

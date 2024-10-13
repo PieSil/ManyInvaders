@@ -8,7 +8,7 @@ public class HandEventArgs : EventArgs {
 
     public readonly HandData Hand;
 
-    public HandEventArgs(List<NormalizedLandmarkList> landmarks) {
-        Hand = new HandData(landmarks);
+    public HandEventArgs(HandData handData) {
+        Hand = handData;
     }
 }
