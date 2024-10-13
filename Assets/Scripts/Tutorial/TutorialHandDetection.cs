@@ -1,3 +1,4 @@
+using Mediapipe;
 using Mediapipe.Unity.CoordinateSystem;
 using System;
 using System.Collections;
@@ -11,6 +12,7 @@ using UnityEngine.UI;
 using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace Mediapipe.Unity.HandDetection {
+
     public class HandDetection : MonoBehaviour {
 
         [SerializeField] private TextAsset _configAsset;
@@ -26,10 +28,9 @@ namespace Mediapipe.Unity.HandDetection {
         private OutputStream<List<NormalizedLandmarkList>> _handLandmarksStream;
 
         private List<NormalizedLandmarkList> _handLandmarks = null;
-        public List<NormalizedLandmarkList> HandLandmarks => _handLandmarks;
 
         public event Action<EventArgs> TrackerInitedEvent;
-        public event Action<LandmarksEventArgs> LandmarksChangedEvent;
+        public event Action<HandEventArgs> LandmarksChangedEvent;
 
         Stopwatch _stopwatch;
 
@@ -135,7 +136,7 @@ namespace Mediapipe.Unity.HandDetection {
                 }
 
                 if (LandmarksChangedEvent != null) {
-                    LandmarksChangedEvent(new LandmarksEventArgs(_handLandmarks));
+                    LandmarksChangedEvent(new HandEventArgs(_handLandmarks));
                 }
 
                 //_handLandmarksAnnotationController.DrawNow(_handLandmarks);
@@ -166,22 +167,4 @@ namespace Mediapipe.Unity.HandDetection {
 
     }
 
-    public class LandmarksEventArgs : EventArgs {
-
-        public List<NormalizedLandmarkList> landmarks { get; private set; }
-
-        public LandmarksEventArgs(List<NormalizedLandmarkList> landmarks) {
-            if (landmarks != null) {
-                this.landmarks = new List<NormalizedLandmarkList>(landmarks.Count);
-
-                // deep copy
-                foreach (var item in landmarks) {
-                    this.landmarks.Add(item.Clone());
-                }
-            } else {
-                landmarks = null;
-            }
-
-        }
-    }
 }
