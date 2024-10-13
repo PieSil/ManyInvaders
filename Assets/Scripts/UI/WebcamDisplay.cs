@@ -20,14 +20,14 @@ public class WebcamDisplay : MonoBehaviour {
         if (_display == null) {
             Debug.LogError("WebcamDisplay must be attached to RawImage component");
 
-            _videoSource.LandmarksChangedEvent -= OnHandLandmarksChanged;
+            _videoSource.HandDetectionEvent -= OnHandLandmarksChanged;
             _videoSource.TrackerInitedEvent -= OnTrackerInited;
             Destroy(this);
             return;
         }
 
         if (_display.enabled) {
-            _videoSource.LandmarksChangedEvent += OnHandLandmarksChanged;
+            _videoSource.HandDetectionEvent += OnHandLandmarksChanged;
         }
 
         _videoSource.TrackerInitedEvent += OnTrackerInited;
@@ -67,9 +67,9 @@ public class WebcamDisplay : MonoBehaviour {
     private void ToggleDisplayWebCam() {
         _display.enabled = !_display.enabled;
         if (_display.enabled) {
-            _videoSource.LandmarksChangedEvent += OnHandLandmarksChanged;
+            _videoSource.HandDetectionEvent += OnHandLandmarksChanged;
         } else { 
-            _videoSource.LandmarksChangedEvent -= OnHandLandmarksChanged;
+            _videoSource.HandDetectionEvent -= OnHandLandmarksChanged;
             _handLandmarksAnnotationController.DrawNow(null);
         }
     }

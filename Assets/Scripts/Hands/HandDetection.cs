@@ -33,7 +33,7 @@ namespace Mediapipe.Unity.HandDetection {
         private List<ClassificationList> _handedness = null;
 
         public event Action<EventArgs> TrackerInitedEvent;
-        public event Action<HandEventArgs> LandmarksChangedEvent;
+        public event Action<HandEventArgs> HandDetectionEvent;
 
         Stopwatch _stopwatch;
 
@@ -161,6 +161,9 @@ namespace Mediapipe.Unity.HandDetection {
                     _handedness = handednessPacket.Get(ClassificationList.Parser);
                     int i = 0;
                     foreach (var item in _handedness) {
+
+                        //flip hand labels in classification as I did not find a better solution
+                        //there is a better way to handle this for sure but I'm in a hurry
                         foreach (var classification in item.Classification) {
                             classification.Label = FlipLabel(classification.Label);
                             Debug.Log($"handedness item {i} is: {item}");
@@ -171,11 +174,10 @@ namespace Mediapipe.Unity.HandDetection {
                     _handedness = null;
                 }
 
-                if (LandmarksChangedEvent != null) {
-                    LandmarksChangedEvent(new HandEventArgs(new HandData(_handLandmarks, _handedness)));
+                if (HandDetectionEvent != null) {
+                    HandDetectionEvent(new HandEventArgs(new HandData(_handLandmarks, _handedness)));
                 }
 
-                //_handLandmarksAnnotationController.DrawNow(_handLandmarks);
             }
         }
 
