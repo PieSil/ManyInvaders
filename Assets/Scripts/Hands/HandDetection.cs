@@ -98,7 +98,7 @@ namespace Mediapipe.Unity.HandDetection {
 
         private PacketMap GetSidePacket() {
             var sidePacket = new PacketMap();
-            sidePacket.Emplace("input_horizontally_flipped", Packet.CreateBool(false));
+            sidePacket.Emplace("input_horizontally_flipped", Packet.CreateBool(true));
             sidePacket.Emplace("input_vertically_flipped", Packet.CreateBool(true));
             sidePacket.Emplace("input_rotation", Packet.CreateInt(0));
             sidePacket.Emplace("output_rotation", Packet.CreateInt(0));
@@ -142,14 +142,15 @@ namespace Mediapipe.Unity.HandDetection {
        
                     
                     _handLandmarks = landmarksPacket.Get(NormalizedLandmarkList.Parser);
-                    /*
-                    // Flip normalized landmarks horizonally
-                    foreach (var landmarks in faceLandmarks) {
+                    
+                    
+                    // Flip normalized landmarks horizontally
+                    foreach (var landmarks in _handLandmarks) {
                         foreach(var lm in landmarks.Landmark) {
                             lm.X = 1-lm.X;
                         }
                     }
-                    */
+                    
 
                 } else {
                     _handLandmarks = null;
@@ -159,17 +160,22 @@ namespace Mediapipe.Unity.HandDetection {
 
                 if (handednessPacket != null) {
                     _handedness = handednessPacket.Get(ClassificationList.Parser);
+                    
+                    /*
                     int i = 0;
                     foreach (var item in _handedness) {
 
                         //flip hand labels in classification as I did not find a better solution
                         //there is a better way to handle this for sure but I'm in a hurry
+
                         foreach (var classification in item.Classification) {
-                            classification.Label = FlipLabel(classification.Label);
-                            Debug.Log($"handedness item {i} is: {item}");
+                            // classification.Label = FlipLabel(classification.Label);
+                            /Debug.Log($"handedness item {i} is: {item}");
                         }
                         i++;
                     }
+                    */
+                    
                 } else {
                     _handedness = null;
                 }

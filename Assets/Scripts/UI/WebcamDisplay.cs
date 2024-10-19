@@ -11,7 +11,7 @@ using UnityEngine.UI;
 public class WebcamDisplay : MonoBehaviour {
 
     [SerializeField] private MultiHandLandmarkListAnnotationController _handLandmarksAnnotationController;
-    [SerializeField] private HandDetection _videoSource;
+    [SerializeField] private HandDetection _detector;
     private RawImage _display;
 
     public void Awake() {
@@ -20,19 +20,19 @@ public class WebcamDisplay : MonoBehaviour {
         if (_display == null) {
             Debug.LogError("WebcamDisplay must be attached to RawImage component");
 
-            _videoSource.HandDetectionEvent -= OnHandLandmarksChanged;
-            _videoSource.TrackerInitedEvent -= OnTrackerInited;
+            _detector.HandDetectionEvent -= OnHandLandmarksChanged;
+            _detector.TrackerInitedEvent -= OnTrackerInited;
             Destroy(this);
             return;
         }
 
         if (_display.enabled) {
-            _videoSource.HandDetectionEvent += OnHandLandmarksChanged;
+            _detector.HandDetectionEvent += OnHandLandmarksChanged;
         }
 
-        _videoSource.TrackerInitedEvent += OnTrackerInited;
+        _detector.TrackerInitedEvent += OnTrackerInited;
 
-        if (_videoSource.WebCamTexture != null) {
+        if (_detector.WebCamTexture != null) {
             OnTrackerInited(new EventArgs());
         }
     }
@@ -49,10 +49,10 @@ public class WebcamDisplay : MonoBehaviour {
 
     private void OnTrackerInited(EventArgs args) {
 
-        _videoSource.TrackerInitedEvent -= OnTrackerInited;
-        float ar = ((float) _videoSource.WebCamTexture.width) / _videoSource.WebCamTexture.height;
+        _detector.TrackerInitedEvent -= OnTrackerInited;
+        float ar = ((float) _detector.WebCamTexture.width) / _detector.WebCamTexture.height;
         ResizeDisplay(ar);
-        _display.texture = _videoSource.WebCamTexture;
+        _display.texture = _detector.WebCamTexture;
 
     }
 
@@ -67,9 +67,9 @@ public class WebcamDisplay : MonoBehaviour {
     private void ToggleDisplayWebCam() {
         _display.enabled = !_display.enabled;
         if (_display.enabled) {
-            _videoSource.HandDetectionEvent += OnHandLandmarksChanged;
+            _detector.HandDetectionEvent += OnHandLandmarksChanged;
         } else { 
-            _videoSource.HandDetectionEvent -= OnHandLandmarksChanged;
+            _detector.HandDetectionEvent -= OnHandLandmarksChanged;
             _handLandmarksAnnotationController.DrawNow(null);
         }
     }
