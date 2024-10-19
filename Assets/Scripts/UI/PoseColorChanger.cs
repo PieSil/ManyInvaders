@@ -23,6 +23,8 @@ public class PoseColorChanger : MonoBehaviour
     private void OnPoseChange(object sender, PoseEventArgs e) {
         if (e.Poses.gun) {
             _image.color = Color.green;
+        } else if (e.Poses.open_hand){
+            _image.color = Color.blue;
         } else {
             _image.color = Color.red;
         }
