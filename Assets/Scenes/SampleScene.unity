@@ -252,7 +252,7 @@ GameObject:
   m_Component:
   - component: {fileID: 267015503}
   m_Layer: 0
-  m_Name: HandPositionDetection
+  m_Name: HandPoseDetection
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -590,7 +590,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _handLandmarksAnnotationController: {fileID: 153593490}
-  _videoSource: {fileID: 1396020154}
+  _detector: {fileID: 0}
 --- !u!1001 &1024725312
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -883,7 +883,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ff1b71a55b69e341996ae258cffb8b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _configAsset: {fileID: 4900000, guid: eae74b0ecd74d8ed0a0610fc6bd2a647, type: 3}
+  _configAsset: {fileID: 4900000, guid: 249e72efe79bb7d4e96b9205be7b5fd1, type: 3}
   _fps: 30
 --- !u!1 &1917526180
 GameObject:
