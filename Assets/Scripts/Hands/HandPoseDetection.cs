@@ -10,12 +10,12 @@ public class HandPoseDetection : MonoBehaviour {
     private float straight_finger_thres = 30.0f;
     private float point_inward_angle_thres = 75.0f;
     //private float point_up_angle_thres = 30;
-    private float gun_thumb_angle_thres = 30.0f;
+    private float gun_thumb_angle_thres = 20.0f;
     [SerializeField] HandDetection _detector;
     private Poses _curPoses;
     public Poses CurPoses => _curPoses;
 
-    public EventHandler<PoseEventArgs> PoseEvent;
+    public EventHandler<RawPoseEventArgs> PoseEvent;
 
     void Start() {
         _curPoses.Reset();
@@ -30,29 +30,29 @@ public class HandPoseDetection : MonoBehaviour {
         if (landmarks_list != null) {
 
             var hand1_landmarks = landmarks_list[0].Landmark;
-            var index_mcp = ExtractScaledLandmark(5, hand1_landmarks);
-            var index_pip = ExtractScaledLandmark(6, hand1_landmarks);
-            var index_dip = ExtractScaledLandmark(7, hand1_landmarks); 
-            var index_tip = ExtractScaledLandmark(8, hand1_landmarks);
+            var index_mcp = ExtractLandmark(5, hand1_landmarks);
+            var index_pip = ExtractLandmark(6, hand1_landmarks);
+            var index_dip = ExtractLandmark(7, hand1_landmarks); 
+            var index_tip = ExtractLandmark(8, hand1_landmarks);
 
-            var thumb_cmc = ExtractScaledLandmark(1, hand1_landmarks);
-            var thumb_mcp = ExtractScaledLandmark(2, hand1_landmarks);
-            var thumb_ip = ExtractScaledLandmark(3, hand1_landmarks); 
-            var thumb_tip = ExtractScaledLandmark(4, hand1_landmarks);
+            var thumb_cmc = ExtractLandmark(1, hand1_landmarks);
+            var thumb_mcp = ExtractLandmark(2, hand1_landmarks);
+            var thumb_ip = ExtractLandmark(3, hand1_landmarks); 
+            var thumb_tip = ExtractLandmark(4, hand1_landmarks);
 
             //operations on other landmarks are less important so we don't need to scale them
             var wrist = ExtractScaledLandmark(0, hand1_landmarks);
-            var midf_mcp = ExtractScaledLandmark(9, hand1_landmarks);
-            var midf_pip = ExtractScaledLandmark(10, hand1_landmarks);
-            var midf_tip = ExtractScaledLandmark(12, hand1_landmarks);
+            var midf_mcp = ExtractLandmark(9, hand1_landmarks);
+            var midf_pip = ExtractLandmark(10, hand1_landmarks);
+            var midf_tip = ExtractLandmark(12, hand1_landmarks);
 
-            var ringf_mcp = ExtractScaledLandmark(13, hand1_landmarks);
-            var ringf_pip = ExtractScaledLandmark(14, hand1_landmarks);
-            var ringf_tip = ExtractScaledLandmark(16, hand1_landmarks);
+            var ringf_mcp = ExtractLandmark(13, hand1_landmarks);
+            var ringf_pip = ExtractLandmark(14, hand1_landmarks);
+            var ringf_tip = ExtractLandmark(16, hand1_landmarks);
 
-            var pinky_mcp = ExtractScaledLandmark(17, hand1_landmarks);
-            var pinky_pip = ExtractScaledLandmark(18, hand1_landmarks);
-            var pinky_tip = ExtractScaledLandmark(20, hand1_landmarks);
+            var pinky_mcp = ExtractLandmark(17, hand1_landmarks);
+            var pinky_pip = ExtractLandmark(18, hand1_landmarks);
+            var pinky_tip = ExtractLandmark(20, hand1_landmarks);
 
             //palm
             Vector3 wrist_to_thumb_cmc = GetVectorBetweenLm(wrist, thumb_cmc);
@@ -85,74 +85,54 @@ public class HandPoseDetection : MonoBehaviour {
             Vector3 pinky_pip_to_tip = GetVectorBetweenLm(pinky_pip, pinky_tip);
             Vector3 pinky_mcp_to_tip = GetVectorBetweenLm(pinky_mcp, pinky_tip);
 
+            float thumb_to_pinky_dist = GetVectorBetweenLm(thumb_mcp, pinky_mcp).magnitude;
+
             // small angle between "inward" direction and index finger direction
-            bool index_toward_screen = Vector3.Angle(index_mcp_to_tip, new Vector3(0, 0, -1)) <= point_inward_angle_thres;
+            // bool index_toward_screen = Vector3.Angle(index_mcp_to_tip, new Vector3(0, 0, -1)) <= point_inward_angle_thres;
            
 
             // bool straight_index = Vector3.Angle(index_dip_to_tip, new Vector3(0, 0, -1)) < 20 || IsFingerStraight(index_mcp_to_pip, index_pip_to_tip);
             // bool straight_thumb = Mathf.Abs(Vector3.Angle(index_mcp_to_tip, thumb_mcp_to_tip)) >= gun_thumb_angle_thres;
 
             Vector3 palm_ortho_vec = Vector3.Cross(wrist_to_thumb_cmc, wrist_to_index_mcp);
-            bool gun_thumb = Vector3.Angle(thumb_mcp_to_ip, thumb_ip_to_tip) < 40.0f; // && Vector3.Angle(palm_ortho_vec, thumb_ip_to_tip) >= 45;
+            // bool gun_thumb = Vector3.Angle(thumb_mcp_to_ip, thumb_ip_to_tip) < 40.0f; // && Vector3.Angle(palm_ortho_vec, thumb_ip_to_tip) >= 45;
             bool index_ortho = Vector3.Angle(index_pip_to_dip, new Vector3(0, 0, -1)) < 50.0f;
             bool straight_index =  Vector3.Angle(index_mcp_to_pip, index_pip_to_tip) < straight_finger_thres;
 
-            bool open_thumb = Vector3.Angle(thumb_mcp_to_ip, thumb_ip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, thumb_ip_to_tip);
-            bool open_index = straight_index && IsFingerOpen(palm_ortho_vec, index_pip_to_tip);
-            bool open_midf = Vector3.Angle(midf_mcp_to_pip, midf_pip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, midf_pip_to_tip);
-            bool open_ringf = Vector3.Angle(ringf_mcp_to_pip, ringf_pip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, ringf_pip_to_tip);
-            bool open_pinky = Vector3.Angle(pinky_mcp_to_pip, pinky_pip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, pinky_pip_to_tip);
-            // bool straight_midf = Vector3.Angle(midf_mcp_to_pip, midf_pip_to_tip) < straight_finger_thres && Vector3.Angle(palm_ortho_vec, midf_pip_to_tip) >= 45;
+            bool open_thumb = Vector3.Angle(thumb_mcp_to_ip, thumb_ip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, thumb_ip_to_tip, thumb_to_pinky_dist);
+            bool ortho_index = Vector3.Dot(new Vector3(0, 0, -1), index_pip_to_tip.normalized) > 0.6f;
+            bool open_index = straight_index && IsFingerOpen(palm_ortho_vec, index_pip_to_tip, thumb_to_pinky_dist) || ortho_index;
+            bool open_midf = Vector3.Angle(midf_mcp_to_pip, midf_pip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, midf_pip_to_tip, thumb_to_pinky_dist) || Vector3.Dot(new Vector3(0, 0, -1), midf_pip_to_tip.normalized) > 0.6f;
+            bool open_ringf = Vector3.Angle(ringf_mcp_to_pip, ringf_pip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, ringf_pip_to_tip, thumb_to_pinky_dist) || Vector3.Dot(new Vector3(0, 0, -1), ringf_pip_to_tip.normalized) > 0.6f;
+            // Debug.Log($"ringf dot with entering vector: {Vector3.Dot(new Vector3(0, 0, -1), ringf_pip_to_tip.normalized)}");
+            bool open_pinky = Vector3.Angle(pinky_mcp_to_pip, pinky_pip_to_tip) < straight_finger_thres && IsFingerOpen(palm_ortho_vec, pinky_pip_to_tip, thumb_to_pinky_dist) || Vector3.Dot(new Vector3(0, 0, -1), pinky_pip_to_tip.normalized) > 0.6f; ;
 
-            /*
-            bool straight_midf = IsFingerStraight(midf_mcp_to_pip, midf_pip_to_tip);
-            bool straight_pinkyf = IsFingerStraight(pinky_mcp_to_pip, pinky_pip_to_tip);
-            bool straight_ringf = IsFingerStraight(ringf_mcp_to_pip, ringf_pip_to_tip);
-            */
-            _curPoses.pointing = index_ortho || (straight_index && index_toward_screen);
-
-            if (!_curPoses.pointing) {
-                Debug.Log($"pointing: {_curPoses.pointing}, pointing_index: {straight_index}, straight_index_angle: {Vector3.Angle(index_mcp_to_pip, index_pip_to_tip)}");
-            }
-            // Debug.Log($"pointing index screen: {pointing_index}, toward screen angle: {Vector3.Angle(index_pip_to_dip, new Vector3(0, 0, -1))} phalanx angle: {Vector3.Angle(index_mcp_to_pip, index_pip_to_tip)}");
-
-            // TODO: use old sytsem to detect gun and cross to detect if fingers are open or closed
-
-            // Debug.Log($"thumb: {GetFingerOpennesString(straight_thumb)}, index: {GetFingerOpennesString(straight_index)}, midf: {GetFingerOpennesString(straight_midf)}");
-
-            //Debug.Log($"thumb: {GetFingerOpennesString(straight_thumb)}, index: {GetFingerOpennesString(straight_index)}, midf: {GetFingerOpennesString(straight_midf)}, ringf: {GetFingerOpennesString(straight_ringf)}, pinky: {GetFingerOpennesString(straight_pinkyf)}");
+            _curPoses.pointing = index_ortho || (straight_index); //&& index_toward_screen
 
             if ( _curPoses.pointing) {
                 // middle finger can be either open or closed
-                _curPoses.gun = !open_ringf && ! open_pinky && Mathf.Abs(Vector3.Angle(index_mcp_to_tip, thumb_mcp_to_tip)) >= gun_thumb_angle_thres;
-            }
+                _curPoses.gun = !open_ringf && !open_pinky;
+                // _curPoses.aiming_point = GetAimingPoint(GetVectorFromLm(index_mcp), GetVectorFromLm(index_tip), index_mcp_to_tip, ortho_index);
 
-            if (!_curPoses.gun) {
-                if (open_ringf || open_pinky) {
-                    Debug.Log($"middle: {GetFingerOpennesString(open_midf)}, ring: {GetFingerOpennesString(open_ringf)}, pinky: {GetFingerOpennesString(open_pinky)}");
-                } else {
-                    Debug.Log($"No gun");
+                if (_curPoses.gun) {
+
+                    // distance between thumb tip and index pip is a good approximation for determining shooting gesture
+                    float norm_thumb_to_index_dist = GetVectorBetweenLm(thumb_tip, index_pip).magnitude / thumb_to_pinky_dist;
+                    _curPoses.Loaded = norm_thumb_to_index_dist > 0.4f;
                 }
             }
 
+            _curPoses.open_hand = open_thumb && open_index && open_midf && open_ringf && open_pinky;
 
-            /*
-            if (straight_midf || straight_pinkyf) {
-                // check for open hand
-                _curPoses.open_hand = straight_midf && straight_pinkyf && straight_index && straight_ringf && straight_thumb;
-            } else {
-                // check for gun pose
-                if (_curPoses.pointing) {
-                    // check angle between index and thumb
-                    _curPoses.gun = Mathf.Abs(Vector3.Angle(index_mcp_to_tip, thumb_mcp_to_tip)) >= gun_thumb_angle_thres;
-                }
+            if (PoseEvent != null) {
+                PoseEvent(this, new RawPoseEventArgs(_curPoses, GetVectorFromLm(index_mcp), GetVectorFromLm(index_tip), index_mcp_to_tip));
             }
-            */
 
-        }
-
-        if (PoseEvent != null) {
-            PoseEvent(this, new PoseEventArgs(_curPoses));
+        } else {
+            _curPoses.lost_hand = true;
+            if (PoseEvent != null) {
+                PoseEvent(this, new RawPoseEventArgs(_curPoses, new Vector3(0, 0, 0), new Vector3(0, 0, 0), new Vector3(0, 0, 0)));
+            }
         }
     }
 
@@ -172,7 +152,7 @@ public class HandPoseDetection : MonoBehaviour {
         return Mathf.Abs(Vector3.Angle(mcp_to_pip, pip_to_tip)) <= straight_finger_thres;
     }
 
-    private bool IsFingerOpen(Vector3 palm_ortho_vec, Vector3 pip_to_tip_vec) {
+    private bool IsFingerOpen(Vector3 palm_ortho_vec, Vector3 pip_to_tip_vec, float norm_factor) {
         return Vector3.Angle(palm_ortho_vec, pip_to_tip_vec) >= 45;
     }
 
@@ -198,19 +178,42 @@ public struct Poses {
     public void Reset() {
         pointing = false;
         gun = false;
+        Loaded = false;
         open_hand = false;
+        lost_hand = false;
+        aiming_point = new Vector2();
     }
 
+    public Vector2 aiming_point;
+    public bool lost_hand;
     public bool pointing;
     public bool gun;
+    public bool Loaded;
+    public readonly bool Shooting => !Loaded;
     public bool open_hand;
 }
 
-public class PoseEventArgs : EventArgs {
+public class RawPoseEventArgs : EventArgs {
+    private Vector3 _mcp;
+    public Vector3 Mcp => _mcp;
+    private Vector3 _tip;
+    public Vector3 Tip => _tip;
+    private Vector3 _mcp_to_tip;
+    public Vector3 Mcp_to_tip => _mcp_to_tip;
     private Poses _poses;
     public Poses Poses => _poses;
 
-    public PoseEventArgs(Poses poses) {
+    public RawPoseEventArgs(Poses poses) {
         _poses = poses;
+        _mcp = new Vector3();
+        _tip = new Vector3();
+        _mcp_to_tip = new Vector3();
+    }
+
+    public RawPoseEventArgs(Poses poses, Vector3 mcp, Vector3 tip, Vector3 mcp_to_tip) {
+        _poses = poses;
+        _mcp = mcp;
+        _tip = tip;
+        _mcp_to_tip = mcp_to_tip;
     }
 }

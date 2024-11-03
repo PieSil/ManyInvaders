@@ -19,6 +19,7 @@ namespace Mediapipe.Unity.HandDetection {
         [SerializeField] private TextAsset _configAsset;
         //[SerializeField] private RawImage _screen;
         [SerializeField] private int _fps;
+        [SerializeField] private int _detectionFps = 0;
         CalculatorGraph _graph;
 
         private WebCamTexture _webCamTexture;
@@ -182,6 +183,10 @@ namespace Mediapipe.Unity.HandDetection {
 
                 if (HandDetectionEvent != null) {
                     HandDetectionEvent(new HandEventArgs(new HandData(_handLandmarks, _handedness)));
+                }
+
+                if (_detectionFps > 0) {
+                    yield return new WaitForSeconds(1/_detectionFps);
                 }
 
             }

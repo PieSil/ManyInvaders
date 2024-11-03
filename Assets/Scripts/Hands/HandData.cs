@@ -29,7 +29,7 @@ public struct HandData {
             _handedness = null;
         }
     }
-
+    
     private List<NormalizedLandmarkList> _landmarks;
     public readonly List<NormalizedLandmarkList> Landmarks => _landmarks;
 
