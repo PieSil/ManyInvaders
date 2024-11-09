@@ -20,6 +20,7 @@ namespace Mediapipe.Unity.HandDetection {
         //[SerializeField] private RawImage _screen;
         [SerializeField] private int _fps;
         [SerializeField] private int _detectionFps = 0;
+        [SerializeField] private int _numHands = 2;
         CalculatorGraph _graph;
 
         private WebCamTexture _webCamTexture;
@@ -34,7 +35,7 @@ namespace Mediapipe.Unity.HandDetection {
         private List<ClassificationList> _handedness = null;
 
         public event Action<EventArgs> TrackerInitedEvent;
-        public event Action<HandEventArgs> HandDetectionEvent;
+        public event Action<HandDetectionEventArgs> HandDetectionEvent;
 
         Stopwatch _stopwatch;
 
@@ -103,7 +104,7 @@ namespace Mediapipe.Unity.HandDetection {
             sidePacket.Emplace("input_vertically_flipped", Packet.CreateBool(true));
             sidePacket.Emplace("input_rotation", Packet.CreateInt(0));
             sidePacket.Emplace("output_rotation", Packet.CreateInt(0));
-            sidePacket.Emplace("num_hands", Packet.CreateInt(1));
+            sidePacket.Emplace("num_hands", Packet.CreateInt(_numHands));
 
             return sidePacket;
         }
@@ -182,7 +183,7 @@ namespace Mediapipe.Unity.HandDetection {
                 }
 
                 if (HandDetectionEvent != null) {
-                    HandDetectionEvent(new HandEventArgs(new HandData(_handLandmarks, _handedness)));
+                    HandDetectionEvent(new HandDetectionEventArgs(new HandDetectionData(_handLandmarks, _handedness)));
                 }
 
                 if (_detectionFps > 0) {

@@ -117,27 +117,34 @@ public class HandInputManager : MonoBehaviour
         private HandInputType _handInputType;
     }
 
+    [SerializeField] HandPoseDetection _poseDetector;
     [SerializeField] HandCalibrator _calibrator;
     [SerializeField] RectTransform _pointer;
+    [SerializeField] RectTransform _canvasRect;
     private Dictionary<HandInputType, InputState> _inputMap = new Dictionary<HandInputType, InputState>();
 
     private NextInputWrapper _nextInput; // contains the input that will be set when associated timer expires
     private Coroutine _delayedInputChangeCoroutine; // holds reference to coroutine that will change the input when timer expires
     private float _toOpenHandSecondsDelay = 0.5f;
-    private float _toNoneSecondsDelay = 1.0f;
-    private float _toLostSecondsDelay = 2.0f;
+    private float _toNoneSecondsDelay = 4.0f;
+    private float _toLostSecondsDelay = 6.0f;
 
     private void Awake() {
         ResetInputs();
         _nextInput.Reset();
         _inputMap[HandInputType.HAND_LOST].Pressed(HandInputType.HAND_LOST);
 
-        _calibrator.PoseCalibratedEvent += OnPoseChange;
+        _poseDetector.PoseEvent += OnPoseChange;
+        _calibrator.AimCalibratedEvent += OnAimChange;
+
+        if (_canvasRect == null ) {
+            Debug.LogError($"No CanvasRect set");
+        }
 
         StartCoroutine(EndOfFrameUpdate());
     }
 
-    private void OnPoseChange(object sender, PoseEventArgs e) {
+    private void OnPoseChange(PoseEventArgs e) {
         /* For simplcity only one hand input is allowed for each frame, with priority for harder to detect gestures */
 
         // for gun pose we set the input as soon as we detect the pose, as these poses might be tricky to detect
@@ -168,13 +175,6 @@ public class HandInputManager : MonoBehaviour
             ScheduleInput(HandInputType.NONE, _toNoneSecondsDelay);
         }
 
-        RectTransform canvas_rect = _pointer.GetComponentInParent<RectTransform>();
-        if (canvas_rect) {
-            Vector2 new_pos = new Vector2(e.Poses.aiming_point.x * 1920/*canvas_rect.sizeDelta.x*/, e.Poses.aiming_point.y * 1080/*canvas_rect.sizeDelta.y*/);
-            Debug.Log($"pointer pos, x: {new_pos.x}, y: {new_pos.y}");
-            _pointer.anchoredPosition = new Vector2(new_pos.x, new_pos.y);
-        }
-
         /*
         RectTransform canvas_rect = _pointer.GetComponentInParent<RectTransform>();
         if (canvas_rect) {
@@ -190,6 +190,16 @@ public class HandInputManager : MonoBehaviour
         }
         */
         
+    }
+
+    private void OnAimChange(AimEventArgs e) {
+        if (e.HasAimingPoint) {
+            if (_canvasRect) {
+                Vector2 new_pos = new Vector2(e.AimingPoint.x * _canvasRect.rect.width, e.AimingPoint.y * _canvasRect.rect.height/*canvas_rect.sizeDelta.y*/);
+                // Debug.Log($"pointer pos, x: {new_pos.x}, y: {new_pos.y}");
+                _pointer.anchoredPosition = new Vector2(new_pos.x, new_pos.y);
+            }
+        }
     }
 
     private void ScheduleInput(HandInputType target, float delay) {
@@ -208,7 +218,9 @@ public class HandInputManager : MonoBehaviour
 
     private IEnumerator DelayedInputChange(HandInputType target, float delay) {
         yield return new WaitForSeconds(delay);
-        PressedInput(target);
+        if (_nextInput.Is(target)) {
+            PressedInput(target);
+        }
     }
 
     private void PressedInput(HandInputType pressedInputType) {

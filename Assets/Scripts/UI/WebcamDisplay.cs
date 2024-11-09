@@ -43,8 +43,8 @@ public class WebcamDisplay : MonoBehaviour {
         }
     }
 
-    private void OnHandLandmarksChanged(HandEventArgs args) {
-        _handLandmarksAnnotationController.DrawNow(args.Hand.Landmarks);
+    private void OnHandLandmarksChanged(HandDetectionEventArgs args) {
+        _handLandmarksAnnotationController.DrawNow(args.DetectionData.Landmarks);
     }
 
     private void OnTrackerInited(EventArgs args) {

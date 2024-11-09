@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public struct HandData {
+public struct HandDetectionData {
 
-    public HandData(List<NormalizedLandmarkList> landmarks, List<ClassificationList> handedness) {
+    public HandDetectionData(List<NormalizedLandmarkList> landmarks, List<ClassificationList> handedness) {
         if (landmarks != null) {
             _landmarks = new List<NormalizedLandmarkList>(landmarks.Count);
 

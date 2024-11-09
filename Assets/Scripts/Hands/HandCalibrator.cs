@@ -21,6 +21,7 @@ public class HandCalibrator : MonoBehaviour {
     [SerializeField] Image _rightAnchorImg;
     [SerializeField] Image _topAnchorImg;
     [SerializeField] Image _downAnchorImg;
+    [SerializeField] Image _centerAnchorImg;
 
     Image _curActiveAnchorImg = null;
 
@@ -28,16 +29,25 @@ public class HandCalibrator : MonoBehaviour {
     public bool Calibrating => _state != CalibrationState.OFF; 
 
     private List<float> _recorded_values = new List<float>();
-
     private float _aiming_plane_depth = -1.0f;
+
+    /*
     private float _negative_x_scale = 1.0f;
     private float _negative_y_scale = 1.0f;
+    private float _center_x_scale = 1.0f;
+    private float _center_y_scale = 1.0f;
     private float _positive_x_scale = 1.0f;
     private float _positive_y_scale = 1.0f;
+    */
+
+    private float _min_x = -0.5f;
+    private float _max_x = 0.5f;
+    private float _min_y = -0.5f;
+    private float _max_y = 0.5f;
 
     private Vector2 _startPos;
-    private List<float> _detectedValues = new List<float>();
-    private float _closePointsMaxDist = 0.2f;
+    private List<Vector2> _detectedValues = new List<Vector2>();
+    private float _closePointsMaxDist = 0.5f;
 
     private float _calibrationStartTime = -1.0f;
     private float _calibrationSeconds = 250.0f;
@@ -46,17 +56,18 @@ public class HandCalibrator : MonoBehaviour {
     int _nLost = 0;
     int _maxSubsequentLosses = 30;
 
-    public EventHandler<PoseEventArgs> PoseCalibratedEvent;
-    [SerializeField] private HandPoseSmoother _poseSmoother;
+    public Action<AimEventArgs> AimCalibratedEvent;
+    [SerializeField] private AimSmoother _aimSmoother;
 
     private void Start() {
         _leftAnchorImg.enabled = false;
         _rightAnchorImg.enabled = false;
         _topAnchorImg.enabled = false;
         _downAnchorImg.enabled = false;
+        _centerAnchorImg.enabled = false;
         _state = CalibrationState.OFF;
 
-        _poseSmoother.PoseEvent += OnPoseChange;
+        _aimSmoother.AimEvent += OnPoseChange;
 
         _remainingCalibrationTime = _calibrationSeconds;
         NextState();
@@ -115,13 +126,14 @@ public class HandCalibrator : MonoBehaviour {
         }
     }
 
-    private float GetScaleFactor(List<float> values, float target) {
+    private float GetScaleFactor(List<Vector2> vectors, float target, bool useX) {
         List<float> scale_factors = new List<float>();
 
-        foreach (float v in values) {
+        foreach (Vector2 vec in vectors) {
             float scale;
-            if (v != 0) {
-                scale = target / v;
+            float value = useX ? vec.x : vec.y;
+            if (value != 0) {
+                scale = target / value;
             } else {
                 scale = 0;
             }
@@ -136,41 +148,61 @@ public class HandCalibrator : MonoBehaviour {
     private void ComputeCurrentStateCalibration() {
 
         if (_state == CalibrationState.LEFT) {
-            _negative_x_scale = GetScaleFactor(_detectedValues, -0.5f);
+            _min_x = GetAverage(_detectedValues, true);
+        } else if (_state == CalibrationState.RIGHT) {
+            _max_x = GetAverage(_detectedValues, true);
+        } else if (_state == CalibrationState.DOWN) {
+            _min_y = GetAverage(_detectedValues, false);
+        } else if (_state == CalibrationState.TOP) {
+            _max_y = GetAverage(_detectedValues, false);
+        }
+
+        /*
+        if (_state == CalibrationState.LEFT) {
+            _negative_x_scale = GetScaleFactor(_detectedValues, -0.5f, true);
             Debug.Log($"scale for negative x is: {_negative_x_scale}");
         } else if (_state == CalibrationState.RIGHT) {
-            _positive_x_scale = GetScaleFactor(_detectedValues, 0.5f);
+            _positive_x_scale = GetScaleFactor(_detectedValues, 0.5f, true);
             Debug.Log($"scale for positive x is: {_positive_x_scale}");
         } else if (_state == CalibrationState.DOWN) {
-            _negative_y_scale = GetScaleFactor(_detectedValues, -0.5f);
+            _negative_y_scale = GetScaleFactor(_detectedValues, -0.5f, false);
             Debug.Log($"scale for negative y is: {_negative_y_scale}");
         } else if (_state == CalibrationState.TOP) {
-            _positive_y_scale = GetScaleFactor(_detectedValues, 0.5f);
+            _positive_y_scale = GetScaleFactor(_detectedValues, 0.5f, false);
             Debug.Log($"scale for positive y is: {_positive_y_scale}");
+        } else if (_state == CalibrationState.CENTER) {
+            _center_x_scale = GetScaleFactor(_detectedValues, 0.001f, true);
+            _center_y_scale = GetScaleFactor(_detectedValues, 0.001f, false);
+            Debug.Log($"scale for center x is: {_center_x_scale}");
+            Debug.Log($"scale for center y is: {_center_y_scale}");
         }
+        */
 
         // else do nothing
 
     }
 
     private void RecordValue(Vector2 aiming_point) {
+        _detectedValues.Add(aiming_point);
+        /*
         if (_state == CalibrationState.LEFT || _state == CalibrationState.RIGHT) {
-            _detectedValues.Add(aiming_point.x);
+            _detectedValues.Add(aiming_point);
         } else if (_state == CalibrationState.DOWN || _state == CalibrationState.TOP) {
-            _detectedValues.Add(aiming_point.y);
+            _detectedValues.Add(aiming_point);
         }
 
         // else do nothing
+        */
 
     }
 
-    private void OnPoseChange(object sender, RawPoseEventArgs e) {
-        Vector2 aiming_point = new Vector2(.0f, .0f);
+    private void OnPoseChange(AimEventArgs e) {
+        Vector2 newAimingPoint = new Vector2(0, 0);
         if (Calibrating) {
             CheckStartCalibrationStep();
 
             bool skip_this = false;
-            if (e.Poses.lost_hand) {
+            if (!e.HasAimingPoint) {
                 skip_this = true;
                 _nLost += 1;
             } else {
@@ -182,18 +214,18 @@ public class HandCalibrator : MonoBehaviour {
             if (!skip_this) {
 
                 // gather data
-                aiming_point = GetAimingPoint(e.Mcp, e.Mcp_to_tip);
+                newAimingPoint = e.AimingPoint;
 
                 if (_detectedValues.Count == 0) {
                     // select first starting point as _startPos
-                    _startPos = aiming_point;
+                    _startPos = newAimingPoint;
                 }
 
-                RecordValue(aiming_point);
+                RecordValue(newAimingPoint);
 
-                if ((aiming_point - _startPos).magnitude > _closePointsMaxDist) {
+                if ((newAimingPoint - _startPos).magnitude > _closePointsMaxDist) {
                     // hand moved too much, reset this step
-                    ResetCaibrationStep(aiming_point);
+                    ResetCaibrationStep(newAimingPoint);
 
                 } else {
                     // check if data gathering needs to end
@@ -217,14 +249,13 @@ public class HandCalibrator : MonoBehaviour {
             }
 
         } else {
-            aiming_point = GetCalibratedAimingPoint(e.Mcp, e.Mcp_to_tip);
+            if (e.HasAimingPoint) {
+                newAimingPoint = GetCalibratedAimingPoint(e.AimingPoint);
+            }
         }
 
-        Poses new_poses = e.Poses;
-        new_poses.aiming_point = aiming_point;
-
-        if (PoseCalibratedEvent != null) {
-            PoseCalibratedEvent(this, new PoseEventArgs(new_poses));
+        if (AimCalibratedEvent != null) {
+            AimCalibratedEvent(new AimEventArgs(newAimingPoint));
         }
     }
 
@@ -269,38 +300,35 @@ public class HandCalibrator : MonoBehaviour {
             float y_intersection = (z_frac * mcp_to_tip.y) + mcp.y;
 
             aiming_point = new Vector2(x_intersection, y_intersection);
-
-            aiming_point = new Vector2(Mathf.Clamp(aiming_point.x, 0, 1), Mathf.Clamp(aiming_point.y, 0, 1));
-
-            // scale so that (0.0f, 0.0f) is the center
-            aiming_point *= new Vector2(-1.0f, -1.0f);
-            aiming_point += new Vector2(0.5f, 0.5f);
         }
 
         return aiming_point;
     }
 
-    private Vector2 GetCalibratedAimingPoint(Vector3 mcp, Vector3 mcp_to_tip) {
-        Vector2 aiming_point = GetAimingPoint(mcp, mcp_to_tip);
-        float x_scale = Mathf.Lerp(_negative_x_scale, _positive_x_scale, aiming_point.x + 0.5f);
-        float y_scale = Mathf.Lerp(_negative_y_scale, _positive_y_scale, aiming_point.y + 0.5f);
+    private static float GetAverage(List<Vector2> vectors, bool useX) {
+        float sum = 0;
+        foreach (var vec in vectors) {
+            sum += useX ? vec.x : vec.y;
+        }
 
-        Debug.Log($"Aiming point pre-scale, x: {aiming_point.x}, y: {aiming_point.y}");
-
-        aiming_point *= new Vector2(x_scale, y_scale);
-
-        Debug.Log($"Aiming point post-scale, x: {aiming_point.x}, y: {aiming_point.y}");
-
-        return aiming_point;
+        return sum / vectors.Count;
     }
 
-}
+    private Vector2 GetCalibratedAimingPoint(Vector2 aimingPoint) {
+        // Vector2 aiming_point = GetAimingPoint(mcp, mcp_to_tip);
 
-public class PoseEventArgs : EventArgs {
-    private Poses _poses;
-    public Poses Poses => _poses;
+        // remap aiming point to [-0.5f, 0.5f]
+        float x_slope = 1.0f / (_max_x - _min_x);
+        float y_slope = 1.0f / (_max_y - _min_y);
+        float clamped_x = Math.Clamp(aimingPoint.x, _min_x, _max_x);
+        float clamped_y = Math.Clamp(aimingPoint.y, _min_y, _max_y);
+        float new_x = (clamped_x - _min_x) * x_slope -0.5f;
+        float new_y = (clamped_y - _min_y) * y_slope - 0.5f;
 
-    public PoseEventArgs(Poses poses) {
-        _poses = poses;
+        aimingPoint = new Vector2(new_x, new_y);
+
+
+        return aimingPoint;
     }
+
 }
