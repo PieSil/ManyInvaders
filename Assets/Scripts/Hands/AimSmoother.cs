@@ -35,6 +35,7 @@ public class AimSmoother : MonoBehaviour
             } else {
                 newMcp = _prevMcp;
                 newMcpToTip = _prevMcpToTip;
+                _hasPrevData = false; // reset previous data
             }
 
             _prevMcp = newMcp;
@@ -52,10 +53,16 @@ public class AimSmoother : MonoBehaviour
                 _prevMcp = e.Mcp;
                 _prevMcpToTip = e.McpToTip;
                 _hasPrevData = true;
-            }
 
-            if (AimEvent != null) {
-                AimEvent(new AimEventArgs(GetAimingPoint(newMcp, newMcpToTip)));
+                if (AimEvent != null) {
+                    AimEvent(new AimEventArgs(GetAimingPoint(newMcp, newMcpToTip)));
+                }
+
+            } else {
+                // empty event
+                if (AimEvent != null) {
+                    AimEvent(new AimEventArgs());
+                }
             }
         }
     }
@@ -84,12 +91,12 @@ public class AimEventArgs : EventArgs {
     public readonly Vector2 AimingPoint;
     public readonly bool HasAimingPoint;
     public AimEventArgs(Vector2 aimingPoint) {
-        this.AimingPoint = aimingPoint;
+        AimingPoint = aimingPoint;
         HasAimingPoint = true;
     }
 
     public AimEventArgs() {
-        this.AimingPoint = new Vector2(0, 0);
+        AimingPoint = new Vector2(0, 0);
         HasAimingPoint = false;
     }
 }

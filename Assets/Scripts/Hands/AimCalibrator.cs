@@ -6,7 +6,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class HandCalibrator : MonoBehaviour {
+public class AimCalibrator : MonoBehaviour {
 
     enum CalibrationState {
         OFF,

@@ -118,7 +118,7 @@ public class HandInputManager : MonoBehaviour
     }
 
     [SerializeField] HandPoseDetection _poseDetector;
-    [SerializeField] HandCalibrator _calibrator;
+    [SerializeField] AimCalibrator _calibrator;
     [SerializeField] RectTransform _pointer;
     [SerializeField] RectTransform _canvasRect;
     private Dictionary<HandInputType, InputState> _inputMap = new Dictionary<HandInputType, InputState>();
@@ -126,8 +126,8 @@ public class HandInputManager : MonoBehaviour
     private NextInputWrapper _nextInput; // contains the input that will be set when associated timer expires
     private Coroutine _delayedInputChangeCoroutine; // holds reference to coroutine that will change the input when timer expires
     private float _toOpenHandSecondsDelay = 0.5f;
-    private float _toNoneSecondsDelay = 4.0f;
-    private float _toLostSecondsDelay = 6.0f;
+    private float _toNoneSecondsDelay = 1.0f;
+    private float _toLostSecondsDelay = 3.0f;
 
     private void Awake() {
         ResetInputs();
