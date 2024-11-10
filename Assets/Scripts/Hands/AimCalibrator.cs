@@ -17,6 +17,7 @@ public class AimCalibrator : MonoBehaviour {
         CENTER
     }
 
+    [SerializeField] HandInputManager _inputManager;
     [SerializeField] Image _leftAnchorImg;
     [SerializeField] Image _rightAnchorImg;
     [SerializeField] Image _topAnchorImg;
@@ -202,7 +203,7 @@ public class AimCalibrator : MonoBehaviour {
             CheckStartCalibrationStep();
 
             bool skip_this = false;
-            if (!e.HasAimingPoint) {
+            if (!e.HasAimingPoint || !(_inputManager.GetHandInput(HandInputType.GUN_SHOOTING) || _inputManager.GetHandInput(HandInputType.GUN_LOADED))) {
                 skip_this = true;
                 _nLost += 1;
             } else {
