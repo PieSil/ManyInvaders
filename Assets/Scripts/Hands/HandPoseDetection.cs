@@ -108,7 +108,7 @@ public class HandPoseDetection : MonoBehaviour {
 
             if (_curPoses.pointing) {
             // middle finger can be either open or closed
-                _curPoses.gun = !open_ringf && !open_pinky;
+                _curPoses.gun = !open_midf && !open_ringf && !open_pinky;
             // _curPoses.aiming_point = GetAimingPoint(GetVectorFromLm(index_mcp), GetVectorFromLm(index_tip), index_mcp_to_tip, ortho_index);
 
                 if (_curPoses.gun) {
