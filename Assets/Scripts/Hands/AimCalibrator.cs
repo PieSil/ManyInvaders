@@ -51,7 +51,7 @@ public class AimCalibrator : MonoBehaviour {
     private float _closePointsMaxDist = 0.5f;
 
     private float _calibrationStartTime = -1.0f;
-    private float _calibrationSeconds = 250.0f;
+    private float _calibrationSeconds = 5.0f;
     private float _remainingCalibrationTime;
 
     int _nLost = 0;
@@ -210,8 +210,6 @@ public class AimCalibrator : MonoBehaviour {
                 _nLost = 0;
             }
 
-
-
             if (!skip_this) {
 
                 // gather data
@@ -230,8 +228,8 @@ public class AimCalibrator : MonoBehaviour {
 
                 } else {
                     // check if data gathering needs to end
-                    _remainingCalibrationTime -= Time.time - _calibrationStartTime;
-                    // Debug.Log($"remaining time is: {_remainingCalibrationTime}");
+                    _remainingCalibrationTime = _calibrationSeconds - (Time.time - _calibrationStartTime);
+
                     if (_remainingCalibrationTime < 0) {
                         // calibrate and go to next step
                         ComputeCurrentStateCalibration();
@@ -286,24 +284,6 @@ public class AimCalibrator : MonoBehaviour {
     private void ResetCalibrationTimer() {
         _calibrationStartTime = Time.time;
         _remainingCalibrationTime = _calibrationSeconds;
-    }
-
-    private Vector2 GetAimingPoint(Vector3 mcp, Vector3 mcp_to_tip) {
-
-        Vector2 aiming_point;
-        if (Vector3.Dot(mcp_to_tip, new Vector3(0, 0, 1)) == 0) {
-            aiming_point = new Vector2(.0f, .0f);
-        } else {
-
-            float numerator = _aiming_plane_depth - mcp.z;
-            float z_frac = numerator / mcp_to_tip.z;
-            float x_intersection = (z_frac * mcp_to_tip.x) + mcp.x;
-            float y_intersection = (z_frac * mcp_to_tip.y) + mcp.y;
-
-            aiming_point = new Vector2(x_intersection, y_intersection);
-        }
-
-        return aiming_point;
     }
 
     private static float GetAverage(List<Vector2> vectors, bool useX) {

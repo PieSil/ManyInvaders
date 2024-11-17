@@ -831,6 +831,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c967d8e988b619142a4b87350b303947, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _inputManager: {fileID: 1923933611}
   _leftAnchorImg: {fileID: 1005925463}
   _rightAnchorImg: {fileID: 1688898246}
   _topAnchorImg: {fileID: 232398762}
