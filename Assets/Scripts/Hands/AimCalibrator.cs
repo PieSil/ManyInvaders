@@ -22,7 +22,6 @@ public class AimCalibrator : MonoBehaviour {
     [SerializeField] Image _rightAnchorImg;
     [SerializeField] Image _topAnchorImg;
     [SerializeField] Image _downAnchorImg;
-    [SerializeField] Image _centerAnchorImg;
 
     Image _curActiveAnchorImg = null;
 
@@ -51,7 +50,7 @@ public class AimCalibrator : MonoBehaviour {
     private float _closePointsMaxDist = 0.5f;
 
     private float _calibrationStartTime = -1.0f;
-    private float _calibrationSeconds = 5.0f;
+    private float _calibrationSeconds = 3.0f;
     private float _remainingCalibrationTime;
 
     int _nLost = 0;
@@ -65,7 +64,6 @@ public class AimCalibrator : MonoBehaviour {
         _rightAnchorImg.enabled = false;
         _topAnchorImg.enabled = false;
         _downAnchorImg.enabled = false;
-        _centerAnchorImg.enabled = false;
         _state = CalibrationState.OFF;
 
         _aimSmoother.AimEvent += OnPoseChange;
@@ -158,43 +156,10 @@ public class AimCalibrator : MonoBehaviour {
             _max_y = GetAverage(_detectedValues, false);
         }
 
-        /*
-        if (_state == CalibrationState.LEFT) {
-            _negative_x_scale = GetScaleFactor(_detectedValues, -0.5f, true);
-            Debug.Log($"scale for negative x is: {_negative_x_scale}");
-        } else if (_state == CalibrationState.RIGHT) {
-            _positive_x_scale = GetScaleFactor(_detectedValues, 0.5f, true);
-            Debug.Log($"scale for positive x is: {_positive_x_scale}");
-        } else if (_state == CalibrationState.DOWN) {
-            _negative_y_scale = GetScaleFactor(_detectedValues, -0.5f, false);
-            Debug.Log($"scale for negative y is: {_negative_y_scale}");
-        } else if (_state == CalibrationState.TOP) {
-            _positive_y_scale = GetScaleFactor(_detectedValues, 0.5f, false);
-            Debug.Log($"scale for positive y is: {_positive_y_scale}");
-        } else if (_state == CalibrationState.CENTER) {
-            _center_x_scale = GetScaleFactor(_detectedValues, 0.001f, true);
-            _center_y_scale = GetScaleFactor(_detectedValues, 0.001f, false);
-            Debug.Log($"scale for center x is: {_center_x_scale}");
-            Debug.Log($"scale for center y is: {_center_y_scale}");
-        }
-        */
-
-        // else do nothing
-
     }
 
     private void RecordValue(Vector2 aiming_point) {
         _detectedValues.Add(aiming_point);
-        /*
-        if (_state == CalibrationState.LEFT || _state == CalibrationState.RIGHT) {
-            _detectedValues.Add(aiming_point);
-        } else if (_state == CalibrationState.DOWN || _state == CalibrationState.TOP) {
-            _detectedValues.Add(aiming_point);
-        }
-
-        // else do nothing
-        */
-
     }
 
     private void OnPoseChange(AimEventArgs e) {
@@ -296,7 +261,6 @@ public class AimCalibrator : MonoBehaviour {
     }
 
     private Vector2 GetCalibratedAimingPoint(Vector2 aimingPoint) {
-        // Vector2 aiming_point = GetAimingPoint(mcp, mcp_to_tip);
 
         // remap aiming point to [-0.5f, 0.5f]
         float x_slope = 1.0f / (_max_x - _min_x);

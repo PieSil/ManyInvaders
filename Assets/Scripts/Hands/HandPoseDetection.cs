@@ -117,8 +117,6 @@ public class HandPoseDetection : MonoBehaviour {
                     float norm_thumb_to_index_dist = GetVectorBetween(thumbTip, indexPip).magnitude / thumbToPinkyDist;
                     _curPoses.Loaded = norm_thumb_to_index_dist > 0.4f;
                 }
-            } else {
-                Debug.Log($"index angle: {Mathf.Abs(Vector3.Angle(indexMcpToPip, indexPipToTip))}");
             }
 
             _curPoses.open_hand = open_thumb && open_index && open_midf && open_ringf && open_pinky;
