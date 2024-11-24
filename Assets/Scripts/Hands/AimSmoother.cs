@@ -8,7 +8,7 @@ using UnityEngine.EventSystems;
 public class AimSmoother : MonoBehaviour
 {
     [SerializeField] HandPoseDetection _detector;
-    private float _alpha = 0.3f;
+    [SerializeField][Range(0.0f, 1.0f)] private float _alpha = 0.3f;
     private Vector3 _prevMcp = new Vector3(0, 0, 0);
     private Vector3 _prevMcpToTip = new Vector3(0, 0, 0);
     private bool _hasPrevData = false;

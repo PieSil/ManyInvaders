@@ -265,8 +265,16 @@ public class AimCalibrator : MonoBehaviour {
         // remap aiming point to [-0.5f, 0.5f]
         float x_slope = 1.0f / (_max_x - _min_x);
         float y_slope = 1.0f / (_max_y - _min_y);
-        float clamped_x = Math.Clamp(aimingPoint.x, _min_x, _max_x);
-        float clamped_y = Math.Clamp(aimingPoint.y, _min_y, _max_y);
+        float clamped_x = 0.0f;
+        float clamped_y = 0.0f;
+        try {
+            clamped_x = Math.Clamp(aimingPoint.x, _min_x, _max_x);
+            clamped_y = Math.Clamp(aimingPoint.y, _min_y, _max_y);
+        } catch (ArgumentException e) {
+            // -.-
+
+            Debug.LogError(e);
+        }
         float new_x = (clamped_x - _min_x) * x_slope -0.5f;
         float new_y = (clamped_y - _min_y) * y_slope - 0.5f;
 

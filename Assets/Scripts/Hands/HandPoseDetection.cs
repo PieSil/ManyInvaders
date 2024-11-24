@@ -3,13 +3,14 @@ using Mediapipe;
 using Mediapipe.Unity.HandDetection;
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class HandPoseDetection : MonoBehaviour {
 
     private float _openFingerThresAngle = 45.0f;
-    private float _orthoFigerThres = 0.6f;
+    private float _orthoFigerThres = 0.5f;
     private float _straightFingerAngleThres = 30.0f;
     // private float point_inward_angle_thres = 75.0f;
     //private float point_up_angle_thres = 30;
@@ -97,14 +98,15 @@ public class HandPoseDetection : MonoBehaviour {
 
             bool straight_index = IsFingerStraight(indexMcpToPip, indexPipToTip, 55.0f);
             bool ortho_index = IsFingerOrtho(indexPipToTip);
+            bool open_index_check = IsFingerOpen(palm_ortho_vec, indexPipToTip);
 
             bool open_thumb = IsFingerStraight(thumbMcpToIp, thumbIpToTip, _straightFingerAngleThres) && IsFingerOpen(palm_ortho_vec, thumbIpToTip);
-            bool open_index = straight_index && IsFingerOpen(palm_ortho_vec, indexPipToTip) || ortho_index;
-            bool open_midf = IsFingerStraight(midfMcpToPip, midfPipToTip, _straightFingerAngleThres) && IsFingerOpen(palm_ortho_vec, midfPipToTip); // || IsFingerOrtho(midf_pip_to_tip);
+            bool open_index = straight_index && open_index_check || ortho_index;
+            bool open_midf = IsFingerStraight(midfMcpToPip, midfPipToTip, 25.0f) && IsFingerOpen(palm_ortho_vec, midfPipToTip) && TipOutsidePalm(midfPip, midfTip, wrist); // || IsFingerOrtho(midf_pip_to_tip);
             bool open_ringf = IsFingerStraight(ringfMcpToPip, ringfPipToTip, _straightFingerAngleThres) && IsFingerOpen(palm_ortho_vec, ringfPipToTip); // || IsFingerOrtho(ringf_pip_to_tip);
             bool open_pinky = IsFingerStraight(pinkyMcpToPip, pinkyPipToTip, _straightFingerAngleThres) && IsFingerOpen(palm_ortho_vec, pinkyPipToTip); // || IsFingerOrtho(pinky_pip_to_tip);
 
-            _curPoses.pointing = ortho_index || straight_index; //&& index_toward_screen
+            _curPoses.pointing = ortho_index || straight_index || open_index_check; //&& index_toward_screen
 
             if (_curPoses.pointing) {
             // middle finger can be either open or closed
@@ -120,6 +122,34 @@ public class HandPoseDetection : MonoBehaviour {
             }
 
             _curPoses.open_hand = open_thumb && open_index && open_midf && open_ringf && open_pinky;
+            if (!_curPoses.gun && !_curPoses.open_hand) {
+                Debug.LogWarning("No gun detected");
+                if (!_curPoses.pointing) {
+                    Debug.LogWarning("No ortho index, straight index or index open");
+                }
+
+                if (open_midf) {
+                    Debug.LogWarning("Middle finger open");
+                    bool straight = IsFingerStraight(midfMcpToPip, midfPipToTip, _straightFingerAngleThres, true);
+                    bool open = IsFingerOpen(palm_ortho_vec, midfPipToTip, true);
+                    bool tipOutsidePalm = TipOutsidePalm(midfPip, midfTip, wrist, true);
+                    Debug.LogWarning($"straight: {straight}, open: {open}, tip outside palm: {tipOutsidePalm}");
+                }
+
+                if (open_ringf) {
+                    Debug.LogWarning("Ring finger open");
+                    bool straight = IsFingerStraight(ringfMcpToPip, ringfPipToTip, _straightFingerAngleThres, true);
+                    bool open = IsFingerOpen(palm_ortho_vec, ringfPipToTip, true);
+                    Debug.LogWarning($"straight: {straight}, open: {open}");
+                }
+
+                if (open_pinky) {
+                    Debug.LogWarning("Pinky open");
+                    bool straight = IsFingerStraight(pinkyMcpToPip, pinkyPipToTip, _straightFingerAngleThres, true);
+                    bool open = IsFingerOpen(palm_ortho_vec, pinkyPipToTip, true);
+                    Debug.LogWarning($"straight: {straight}, open: {open}");
+                }
+            }
 
             if (PoseEvent != null) {
                 PoseEvent(new PoseEventArgs(_curPoses));
@@ -145,12 +175,34 @@ public class HandPoseDetection : MonoBehaviour {
         return Vector3.Dot(new Vector3(0, 0, -1), pipToTip.normalized) > _orthoFigerThres;
     }
 
-    private bool IsFingerStraight(Vector3 mcpToPip, Vector3 pipToTip, float angleThres) {
-        return Mathf.Abs(Vector3.Angle(mcpToPip, pipToTip)) < angleThres;
+    private bool IsFingerStraight(Vector3 mcpToPip, Vector3 pipToTip, float angleThres, bool debug = false) {
+        float absAngle = Mathf.Abs(Vector3.Angle(mcpToPip, pipToTip));
+        if (debug) {
+            Debug.LogWarning($"finger straight check, angle: {absAngle}, thres: {angleThres} (should be < thres for true)");
+        }
+
+        return absAngle < angleThres;
     }
 
-    private bool IsFingerOpen(Vector3 palmOrthoVec, Vector3 pipToTip) {
-        return Mathf.Abs(Vector3.Angle(palmOrthoVec, pipToTip)) >= _openFingerThresAngle;
+    private bool TipOutsidePalm(Vector3 pip, Vector3 tip, Vector3 wrist, bool debug = false) {
+        Vector3 wristToPip = GetVectorBetween(wrist, pip);
+        Vector3 wristToTip = GetVectorBetween(wrist, tip);
+        float wristToPipMagn = wristToPip.magnitude;
+        float wristToTipMagn = wristToTip.magnitude;
+
+        if (debug) {
+            Debug.LogWarning($"wrist to pip magnitude: {wristToPipMagn}, wrist to tip magnitude: {wristToTipMagn}");
+        }
+
+        return wristToTipMagn - wristToPipMagn >= 0.02;
+    }
+
+    private bool IsFingerOpen(Vector3 palmOrthoVec, Vector3 pipToTip, bool debug = false) {
+        float absAngle = Mathf.Abs(Vector3.Angle(palmOrthoVec, pipToTip));
+        if (debug) {
+            Debug.LogWarning($"finger open check, angle: {absAngle}, thres: {_openFingerThresAngle} (should be >= thres for true)");
+        }
+        return absAngle >= _openFingerThresAngle;
     }
 
     private Vector3 GetVectorBetween(Vector3 start, Vector3 end) {

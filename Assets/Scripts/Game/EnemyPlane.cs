@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
@@ -14,8 +15,7 @@ public class EnemyPlane : MonoBehaviour {
     [SerializeField][Range(0, 0.99999f)] private float _top_margin = 0;
     [SerializeField][Range(0, 0.99999f)] private float _bottom_margin = 0;
     [SerializeField] GameObject _invaderPrefab;
-    [SerializeField] float _forwardStep = -10;
-    [SerializeField] public RectTransform PlaneCanvasRectTransform;
+    private RectTransform _planeRectTransform;
     private InvaderSlot _referenceSlot;
     // private RectTransform _screenCanvasRectTransform;
     private Dictionary<ValueTuple<int, int>, Invader> _spawnedInvaders = new Dictionary<ValueTuple<int, int>, Invader>();
@@ -24,18 +24,20 @@ public class EnemyPlane : MonoBehaviour {
 
     public Action<EnemyPlaneDestroyedEventArgs> EnemyPlaneDestoyed;
 
-    private void Start() {
-        Init();
-    }
+    private void Start() {}
 
     // Start is called before the first frame update
-    private void Init() {
+    public void Init(SpawnGrid pattern) {
+
+        _pattern = pattern;
 
         ClearInvaders();
 
-        if (PlaneCanvasRectTransform == null) {
-            Debug.LogError("No plane canvas was set");
-            throw new Exception("No plane canvas was set");
+        _planeRectTransform = GetComponent<RectTransform>();
+
+        if (_planeRectTransform == null) {
+            Debug.LogError("This object has no RectTransform component");
+            throw new Exception("This object has no RectTransform component");
         }
 
         if (_invaderPrefab == null) {
@@ -65,41 +67,40 @@ public class EnemyPlane : MonoBehaviour {
         _x_offset = Mathf.Max(GetScreenWidth() - _referenceSlot.Width * _pattern.Cols, 0) / (_pattern.Cols + 1);
         _y_offset = Mathf.Max(GetScreenHeight() - _referenceSlot.Height * _pattern.Rows, 0) / (_pattern.Rows + 1);
 
-        SpawnAll();
-
     }
 
     public void SpawnAll() {
         Vector3[] corners = new Vector3[4];
-        PlaneCanvasRectTransform.GetWorldCorners(corners);
+        _planeRectTransform.GetWorldCorners(corners);
         var topLeft = corners[1];
-        topLeft.x /= PlaneCanvasRectTransform.localScale.x;
-        topLeft.y /= PlaneCanvasRectTransform.localScale.y;
+        topLeft.x /= _planeRectTransform.localScale.x;
+        topLeft.y /= _planeRectTransform.localScale.y;
         Debug.Log($"bottom left: {topLeft}");
 
         foreach (ValueTuple<int, int> gridIndices in _pattern) {
             var pos = topLeft;
             // gridIndices[0] == col index
             // gridIndices[1] == row index
-            pos.x += Mathf.Floor((GetScreenLeftOffset() + ((float)gridIndices.Item2 + 1) * (_x_offset) + (_referenceSlot.Width / 2.0f) + (float)gridIndices.Item2 * _referenceSlot.Width));
-            pos.y -= Mathf.Floor((GetScreenTopOffset() + ((float)gridIndices.Item1 + 1) * (_y_offset) + (_referenceSlot.Height / 2.0f) + (float)gridIndices.Item1 * _referenceSlot.Height));
-            //float shift_x = gridIndices.x % 2 == 0 ? _referenceSlot.InvaderWidth/4 : -_referenceSlot.InvaderWidth / 4;
-            //pos.x += Mathf.Floor(shift_x);
-            // float shift_y = gridIndices.y % 2 == 0 ? -_referenceSlot.Height / 4 : +_referenceSlot.Height / 4;
-            // pos.y += Mathf.Floor(shift_y);
+            Debug.Log($"left is: {GetScreenLeftOffset()}");
+            Debug.Log($"top is: {GetScreenTopOffset()}");
+            pos.x = (GetScreenLeftOffset() + ((float)gridIndices.Item2 + 1) * (_x_offset) + (_referenceSlot.Width / 2.0f) + (float)gridIndices.Item2 * _referenceSlot.Width);
+            pos.y = (GetScreenTopOffset() - ((float)gridIndices.Item1 + 1) * (_y_offset) - (_referenceSlot.Height / 2.0f) - (float)gridIndices.Item1 * _referenceSlot.Height);
+
             var spawned = Instantiate(_invaderPrefab, pos, Quaternion.identity);
             Invader invader = spawned.GetComponent<Invader>();
             if (invader == null) {
                 Debug.LogError("Spawned enemy has no Invader script");
                 throw new Exception("Spawned enemy has no Invader script");
             }
+
             invader.SetGridIndices(gridIndices);
             invader.InvaderDestroyed += OnInvaderDestroyed;
 
             RectTransform invaderTransform = spawned.GetComponent<RectTransform>();
 
             invaderTransform.localScale = new Vector3(_referenceSlot.Scale, _referenceSlot.Scale, 1);
-            spawned.transform.SetParent(PlaneCanvasRectTransform.gameObject.transform, false);
+            spawned.transform.SetParent(_planeRectTransform.gameObject.transform, true);
+            // spawned.transform.position = new Vector3(spawned.transform.position.x, spawned.transform.position.y, _planeRectTransform.transform.position.z);
             _spawnedInvaders.Add(gridIndices, invader);
         }
     }
@@ -117,11 +118,23 @@ public class EnemyPlane : MonoBehaviour {
     }
 
     private void ClearInvaders() {
-        foreach (var gridIndices in _spawnedInvaders.Keys) {
+        var gridIndicesList = _spawnedInvaders.Keys.ToList<ValueTuple<int, int>>();
+        foreach (var gridIndices in gridIndicesList) {
             var invader = _spawnedInvaders[gridIndices];
             invader.InvaderDestroyed -= OnInvaderDestroyed;
-            Destroy(invader.gameObject);
             _spawnedInvaders.Remove(gridIndices);
+            Destroy(invader.gameObject);
+        }
+    }
+
+    public void AssignAlpha(float alpha) {
+        foreach(var invader in _spawnedInvaders.Values) {
+            UnityEngine.UI.Image _invaderImage = invader.GetComponent<UnityEngine.UI.Image>();
+            if (_invaderImage != null) {
+                _invaderImage.color = new UnityEngine.Color(_invaderImage.color.r, _invaderImage.color.g, _invaderImage.color.b, alpha);
+            } else {
+                Debug.LogWarning("Image is null");
+            }
         }
     }
 
@@ -134,33 +147,25 @@ public class EnemyPlane : MonoBehaviour {
     }
 
     private float GetScreenLeftOffset() {
-        return PlaneCanvasRectTransform.rect.width * _left_margin;
+        return _planeRectTransform.position.x + _planeRectTransform.rect.width * (-0.5f + _left_margin);
+        // return _planeRectTransform.position.x - _planeRectTransform.rect.width/2 + _planeRectTransform.rect.width * _left_margin;
     }
 
     private float GetScreenTopOffset() {
-        return PlaneCanvasRectTransform.rect.height * _top_margin;
-    }
-
-    private float GetScreenRightOffsetFromLeft() {
-        float right_offset = PlaneCanvasRectTransform.rect.width * _right_margin;
-        return GetScreenLeftOffset() + (PlaneCanvasRectTransform.rect.width - right_offset);
-    }
-
-    private float GetScreenBottomOffsetFromTop() {
-        float bottom_offset = PlaneCanvasRectTransform.rect.height * _bottom_margin;
-        return GetScreenTopOffset() + (PlaneCanvasRectTransform.rect.width - _bottom_margin);
+        return _planeRectTransform.position.y + _planeRectTransform.rect.height * (0.5f - _top_margin);
+        //return _planeRectTransform.rect.height * _top_margin;
     }
 
     private float GetScreenWidth() {
-        float left_offset = PlaneCanvasRectTransform.rect.width * _left_margin;
-        float right_offset = PlaneCanvasRectTransform.rect.width * _right_margin;
-        return PlaneCanvasRectTransform.rect.width - (left_offset + right_offset);
+        float left_offset = _planeRectTransform.rect.width * _left_margin;
+        float right_offset = _planeRectTransform.rect.width * _right_margin;
+        return _planeRectTransform.rect.width - (left_offset + right_offset);
     }
 
     private float GetScreenHeight() {
-        float top_offset = PlaneCanvasRectTransform.rect.height * _top_margin;
-        float bottom_offset = PlaneCanvasRectTransform.rect.height * _bottom_margin;
-        return PlaneCanvasRectTransform.rect.height - (top_offset + bottom_offset);
+        float top_offset = _planeRectTransform.rect.height * _top_margin;
+        float bottom_offset = _planeRectTransform.rect.height * _bottom_margin;
+        return _planeRectTransform.rect.height - (top_offset + bottom_offset);
     }
 
     private void ResizeInvaderSlot() {

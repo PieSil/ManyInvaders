@@ -122,6 +122,7 @@ public class HandInputManager : MonoBehaviour
     [SerializeField] RectTransform _pointer;
     [SerializeField] RectTransform _canvasRect;
     private Dictionary<HandInputType, InputState> _inputMap = new Dictionary<HandInputType, InputState>();
+    private Vector3 _pointerPosition;
 
     private NextInputWrapper _nextInput; // contains the input that will be set when associated timer expires
     private Coroutine _delayedInputChangeCoroutine; // holds reference to coroutine that will change the input when timer expires
@@ -174,21 +175,6 @@ public class HandInputManager : MonoBehaviour
             // Debug.Log("No pose");
             ScheduleInput(HandInputType.NONE, _toNoneSecondsDelay);
         }
-
-        /*
-        RectTransform canvas_rect = _pointer.GetComponentInParent<RectTransform>();
-        if (canvas_rect) {
-            // convert to image coordinates
-            Vector2 to_unscaled_img = e.Poses.aiming_point;
-            to_unscaled_img *= new Vector2(-1, -1);
-            to_unscaled_img += new Vector2(-0.5f, +0.5f);
-            Vector2 new_pos = new Vector2(to_unscaled_img.x * canvas_rect.sizeDelta.x, to_unscaled_img.y * canvas_rect.sizeDelta.y);
-            new_pos += new Vector2(100.0f, .0f);
-            Debug.Log($"New pos x: {new_pos.x}, y: {new_pos.y}");
-            _pointer.anchoredPosition = new Vector2(new_pos.x, new_pos.y);
-
-        }
-        */
         
     }
 
@@ -196,8 +182,8 @@ public class HandInputManager : MonoBehaviour
         if (e.HasAimingPoint) {
             if (_canvasRect) {
                 Vector2 new_pos = new Vector2(e.AimingPoint.x * _canvasRect.rect.width, e.AimingPoint.y * _canvasRect.rect.height/*canvas_rect.sizeDelta.y*/);
-                // Debug.Log($"pointer pos, x: {new_pos.x}, y: {new_pos.y}");
-                _pointer.anchoredPosition = new Vector2(new_pos.x, new_pos.y);
+                _pointer.anchoredPosition = new_pos;
+                _pointerPosition = _pointer.position;
             }
         }
     }
@@ -261,6 +247,14 @@ public class HandInputManager : MonoBehaviour
                 _inputMap[inputType] = _inputMap[inputType].AtEndOfFrame();
             }
         }
+    }
+
+    public Vector3 GetPointerPos3D() {
+        var pos = _pointer.position;
+        pos.z += Camera.main.nearClipPlane;
+        var worldPos = Camera.main.ScreenToWorldPoint(pos);
+
+        return worldPos;
     }
 
     public bool GetHandInput(HandInputType query) {
