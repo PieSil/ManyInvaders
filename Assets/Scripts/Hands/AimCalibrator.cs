@@ -60,10 +60,10 @@ public class AimCalibrator : MonoBehaviour {
     [SerializeField] private AimSmoother _aimSmoother;
 
     private void Start() {
-        _leftAnchorImg.enabled = false;
-        _rightAnchorImg.enabled = false;
-        _topAnchorImg.enabled = false;
-        _downAnchorImg.enabled = false;
+        _leftAnchorImg.gameObject.SetActive(false);
+        _rightAnchorImg.gameObject.SetActive(false);
+        _topAnchorImg.gameObject.SetActive(false);
+        _downAnchorImg.gameObject.SetActive(false);
         _state = CalibrationState.OFF;
 
         _aimSmoother.AimEvent += OnPoseChange;
@@ -74,7 +74,7 @@ public class AimCalibrator : MonoBehaviour {
 
     private void NextState() {
         if (_curActiveAnchorImg != null) {
-            _curActiveAnchorImg.enabled = false;
+            _curActiveAnchorImg.gameObject.SetActive(false);
         }
 
         if (_state == CalibrationState.LEFT) {
@@ -82,7 +82,7 @@ public class AimCalibrator : MonoBehaviour {
             _state = CalibrationState.RIGHT;
 
             // render appropriate arrow
-            _rightAnchorImg.enabled = true;
+            _rightAnchorImg.gameObject.SetActive(true);
             _curActiveAnchorImg = _rightAnchorImg;
 
             // start gathering info
@@ -92,7 +92,7 @@ public class AimCalibrator : MonoBehaviour {
             _state = CalibrationState.DOWN;
 
             // render appropriate arrow
-            _downAnchorImg.enabled = true;
+            _downAnchorImg.gameObject.SetActive(true);
             _curActiveAnchorImg = _downAnchorImg;
 
             // start gathering info
@@ -102,7 +102,7 @@ public class AimCalibrator : MonoBehaviour {
             _state = CalibrationState.TOP;
 
             // render appropriate arrow
-            _topAnchorImg.enabled = true;
+            _topAnchorImg.gameObject.SetActive(true);
             _curActiveAnchorImg = _topAnchorImg;
 
             // start gathering info
@@ -118,7 +118,7 @@ public class AimCalibrator : MonoBehaviour {
             _state = CalibrationState.LEFT;
 
             // render appropriate arrow
-            _leftAnchorImg.enabled = true;
+            _leftAnchorImg.gameObject.SetActive(true);
             _curActiveAnchorImg = _leftAnchorImg;
 
             // start gathering info
@@ -208,8 +208,11 @@ public class AimCalibrator : MonoBehaviour {
             }
 
             if (_curActiveAnchorImg != null) {
-                var text = _curActiveAnchorImg.GetComponentInChildren<TMP_Text>();
-                text.text = ((int) _remainingCalibrationTime).ToString();
+                float fillAmount = 0.5f + (_remainingCalibrationTime / _calibrationSeconds)/2;
+                _curActiveAnchorImg.fillAmount = fillAmount;
+
+                // var text = _curActiveAnchorImg.GetComponentInChildren<TMP_Text>();
+                // text.text = ((int) _remainingCalibrationTime).ToString();
             }
 
         } else {
