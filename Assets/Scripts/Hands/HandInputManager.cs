@@ -124,6 +124,10 @@ public class HandInputManager : MonoBehaviour
     private Dictionary<HandInputType, InputState> _inputMap = new Dictionary<HandInputType, InputState>();
     private Vector3 _pointerPosition;
 
+    private bool _mouseIdle = true;
+    private float _mouseIdleThresh = 0.5f;
+    private float _mouseIdleTimer = 0.0f;
+    private Vector3 _lastMousePosition;
     private NextInputWrapper _nextInput; // contains the input that will be set when associated timer expires
     private Coroutine _delayedInputChangeCoroutine; // holds reference to coroutine that will change the input when timer expires
     private float _toOpenHandSecondsDelay = 0.5f;
@@ -142,7 +146,32 @@ public class HandInputManager : MonoBehaviour
             Debug.LogError($"No CanvasRect set");
         }
 
-        StartCoroutine(EndOfFrameUpdate());
+        StartCoroutine(NextFrameUpdate());
+    }
+
+    void Update() {
+        if (SystemState.GetInstance().IsMouseEnabled) {
+            var mousePos = Input.mousePosition;
+            if (mousePos != _lastMousePosition) {
+                _mouseIdle = false;
+                _lastMousePosition = mousePos;
+                _mouseIdleTimer = 0.0f;
+
+                _pointer.position = mousePos;
+            } else if (!_mouseIdle) {
+                _mouseIdleTimer += Time.deltaTime;
+
+                if (_mouseIdleTimer >= _mouseIdleThresh) {
+                    _mouseIdle = true;
+                }
+            }
+        } else {
+
+            if (!_mouseIdle) {
+                _mouseIdleTimer = 0.0f;
+                _mouseIdle = true;
+            }
+        }
     }
 
     private void OnPoseChange(PoseEventArgs e) {
@@ -179,7 +208,7 @@ public class HandInputManager : MonoBehaviour
     }
 
     private void OnAimChange(AimEventArgs e) {
-        if (e.HasAimingPoint) {
+        if (e.HasAimingPoint && _mouseIdle) {
             if (_canvasRect) {
                 Vector2 new_pos = new Vector2(e.AimingPoint.x * _canvasRect.rect.width, e.AimingPoint.y * _canvasRect.rect.height/*canvas_rect.sizeDelta.y*/);
                 _pointer.anchoredPosition = new_pos;
@@ -240,9 +269,9 @@ public class HandInputManager : MonoBehaviour
         }
     }
 
-    private IEnumerator EndOfFrameUpdate() {
+    private IEnumerator NextFrameUpdate() {
         while (true) {
-            yield return new WaitForEndOfFrame();
+            yield return null;
             foreach (HandInputType inputType in Enum.GetValues(typeof(HandInputType)).Cast<HandInputType>()) {
                 _inputMap[inputType] = _inputMap[inputType].AtEndOfFrame();
             }

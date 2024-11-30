@@ -57,6 +57,7 @@ public class AimCalibrator : MonoBehaviour {
     int _maxSubsequentLosses = 30;
 
     public Action<AimEventArgs> AimCalibratedEvent;
+    public Action<EventArgs> CalibrationDone;
     [SerializeField] private AimSmoother _aimSmoother;
 
     private void Start() {
@@ -69,6 +70,11 @@ public class AimCalibrator : MonoBehaviour {
         _aimSmoother.AimEvent += OnPoseChange;
 
         _remainingCalibrationTime = _calibrationSeconds;
+    }
+
+    public void ResetCalibration() {
+        StopCalibrationStep();
+        _state = CalibrationState.OFF;
         NextState();
     }
 
@@ -110,8 +116,11 @@ public class AimCalibrator : MonoBehaviour {
         } else if (_state == CalibrationState.TOP) {
             // go to off
             _state = CalibrationState.OFF;
-
             _curActiveAnchorImg = null;
+
+            if (CalibrationDone != null) {
+                CalibrationDone(new EventArgs());
+            }
 
         } else {
             // start from left
@@ -221,8 +230,14 @@ public class AimCalibrator : MonoBehaviour {
             }
         }
 
-        if (AimCalibratedEvent != null) {
-            AimCalibratedEvent(new AimEventArgs(newAimingPoint));
+        if (e.HasAimingPoint) {
+            if (AimCalibratedEvent != null) {
+                AimCalibratedEvent(new AimEventArgs(newAimingPoint));
+            }
+        } else {
+            if (AimCalibratedEvent != null) {
+                AimCalibratedEvent(new AimEventArgs());
+            }
         }
     }
 

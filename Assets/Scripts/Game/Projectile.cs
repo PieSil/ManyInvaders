@@ -11,10 +11,12 @@ public class Projectile : MonoBehaviour
     public Action<EventArgs> EnemyKilledEvent;
 
     void Update() {
-        if (transform.position.z >= _maxDepth) {
-            Destroy(gameObject);
-        } else {
-            transform.position += transform.forward * _speed * Time.deltaTime;
+        if (!SystemState.GetInstance().IsPaused) {
+            if (transform.position.z >= _maxDepth) {
+                Destroy(gameObject);
+            } else {
+                transform.position += transform.forward * _speed * Time.deltaTime;
+            }
         }
     }
 

@@ -6,6 +6,7 @@ using UnityEngine.UIElements;
 
 public class LevelManager : MonoBehaviour {
     [SerializeField] private RectTransform _referenceScreenTransform;
+    [SerializeField] private ShootingSystem _shootingSystem;
     [SerializeField] private float _startDepth = 400.0f;
     [SerializeField] private float _endDepth = 100.0f;
     [SerializeField][Min(0.0000001f)] private float _spawnPeriodSeconds = 20.0f;
@@ -13,6 +14,11 @@ public class LevelManager : MonoBehaviour {
     [SerializeField] private GameObject _enemyPlanePrefab;
     [SerializeField] private List<EnemyPlane> _spawnedEnemyPlanes;
     [SerializeField] private List<SpawnGrid> _patterns = new List<SpawnGrid>();
+    [SerializeField] private int _maxPlayerLives = 3;
+    private bool _levelOngoing = false;
+    private float _spawnTimer = 0;
+    private int _curScore = 0;
+    private int _playerLives = 0;
     private float _speed;
     private float _moveStep;
     private int _curPattern = 0;
@@ -43,8 +49,6 @@ public class LevelManager : MonoBehaviour {
 
         _moveStep = Mathf.Abs((_endDepth - _startDepth) / (float)_nSteps);
         _speed = _moveStep / _spawnPeriodSeconds;
-
-        StartCoroutine(MoveCoroutine());
 
     }
 
@@ -104,31 +108,50 @@ public class LevelManager : MonoBehaviour {
     }
 
     private void Update() {
-        // Vector3 traslation = new Vector3(0, 0, _speed * Time.deltaTime);
-        EnemyPlane toDelete = null;
-        foreach (var enemyPlane in _spawnedEnemyPlanes) {
-            enemyPlane.transform.position -= enemyPlane.transform.forward * _speed * Time.deltaTime;
-            // enemyPlane.transform.Translate(traslation);
-            if (Mathf.Abs(enemyPlane.transform.position.z - Camera.main.transform.position.z) <= _endDepth) {
-                toDelete = enemyPlane;
-            } else {
-                enemyPlane.AssignAlpha(GetDepthAlpha(enemyPlane.transform.position.z));
+        if (_levelOngoing && !SystemState.GetInstance().IsPaused) {
+            // Vector3 traslation = new Vector3(0, 0, _speed * Time.deltaTime);
+            EnemyPlane toDelete = null;
+            foreach (var enemyPlane in _spawnedEnemyPlanes) {
+                enemyPlane.transform.position -= enemyPlane.transform.forward * _speed * Time.deltaTime;
+                // enemyPlane.transform.Translate(traslation);
+                if (Mathf.Abs(enemyPlane.transform.position.z - Camera.main.transform.position.z) <= _endDepth) {
+                    toDelete = enemyPlane;
+                } else {
+                    enemyPlane.AssignAlpha(GetDepthAlpha(enemyPlane.transform.position.z));
+                }
+            }
+
+            if (toDelete != null) {
+                DespawnEnemyPlane(toDelete);
+            }
+
+            _spawnTimer += Time.deltaTime;
+            if (_spawnTimer > _spawnPeriodSeconds) {
+                _spawnTimer = 0;
+                InstanceEnemyPlane();
             }
         }
 
-        if (toDelete != null) {
-            DespawnEnemyPlane(toDelete);
-        }
     }
 
-    private IEnumerator MoveCoroutine() {
+    public void Clear() {
 
-        while (true) {
+        _levelOngoing = false;
 
-            InstanceEnemyPlane();
-
-            yield return new WaitForSeconds(_spawnPeriodSeconds);
+        foreach (var enemyPlane in _spawnedEnemyPlanes) {
+            DespawnEnemyPlane(enemyPlane);
         }
+
+        _spawnedEnemyPlanes.Clear();
+        _curPattern = 0;
+        _playerLives = _maxPlayerLives;
+        _curScore = 0;
+        _spawnTimer = _spawnPeriodSeconds;
+    }
+
+    public void StartLevel() {
+        Clear();
+        _levelOngoing = true;
     }
 
     private void DespawnEnemyPlane(EnemyPlane enemyPlane) {

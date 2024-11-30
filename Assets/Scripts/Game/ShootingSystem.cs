@@ -20,7 +20,7 @@ public class ShootingSystem : MonoBehaviour {
 
     private void Update() {
         if (!SystemState.GetInstance().IsPaused) {
-            if (!_reloading && _handInputManager.GetHandInput(HandInputType.GUN_SHOOTING)) {
+            if (!_reloading && _handInputManager.GetHandInputDown(HandInputType.GUN_SHOOTING)) {
                 var pointerPos = _handInputManager.GetPointerPos3D();
                 var spawnPos = pointerPos;
                 spawnPos.z += 10.0f;

@@ -122,6 +122,8 @@ public class HandPoseDetection : MonoBehaviour {
             }
 
             _curPoses.open_hand = open_thumb && open_index && open_midf && open_ringf && open_pinky;
+
+            /*
             if (!_curPoses.gun && !_curPoses.open_hand) {
                 Debug.LogWarning("No gun detected");
                 if (!_curPoses.pointing) {
@@ -150,6 +152,7 @@ public class HandPoseDetection : MonoBehaviour {
                     Debug.LogWarning($"straight: {straight}, open: {open}");
                 }
             }
+            */
 
             if (PoseEvent != null) {
                 PoseEvent(new PoseEventArgs(_curPoses));
