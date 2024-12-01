@@ -122,7 +122,7 @@ public class HandInputManager : MonoBehaviour
     [SerializeField] RectTransform _pointer;
     [SerializeField] RectTransform _canvasRect;
     private Dictionary<HandInputType, InputState> _inputMap = new Dictionary<HandInputType, InputState>();
-    private Vector3 _pointerPosition;
+    private bool _pointerEnabled = true;
 
     private bool _mouseIdle = true;
     private float _mouseIdleThresh = 0.5f;
@@ -150,26 +150,28 @@ public class HandInputManager : MonoBehaviour
     }
 
     void Update() {
-        if (SystemState.GetInstance().IsMouseEnabled) {
-            var mousePos = Input.mousePosition;
-            if (mousePos != _lastMousePosition) {
-                _mouseIdle = false;
-                _lastMousePosition = mousePos;
-                _mouseIdleTimer = 0.0f;
+        if (_pointerEnabled) {
+            if (SystemState.GetInstance().IsMouseEnabled) {
+                var mousePos = Input.mousePosition;
+                if (mousePos != _lastMousePosition) {
+                    _mouseIdle = false;
+                    _lastMousePosition = mousePos;
+                    _mouseIdleTimer = 0.0f;
 
-                _pointer.position = mousePos;
-            } else if (!_mouseIdle) {
-                _mouseIdleTimer += Time.deltaTime;
+                    _pointer.position = mousePos;
+                } else if (!_mouseIdle) {
+                    _mouseIdleTimer += Time.deltaTime;
 
-                if (_mouseIdleTimer >= _mouseIdleThresh) {
+                    if (_mouseIdleTimer >= _mouseIdleThresh) {
+                        _mouseIdle = true;
+                    }
+                }
+            } else {
+
+                if (!_mouseIdle) {
+                    _mouseIdleTimer = 0.0f;
                     _mouseIdle = true;
                 }
-            }
-        } else {
-
-            if (!_mouseIdle) {
-                _mouseIdleTimer = 0.0f;
-                _mouseIdle = true;
             }
         }
     }
@@ -183,7 +185,8 @@ public class HandInputManager : MonoBehaviour
 
         if (e.Poses.gun) {
             if (_inputMap[HandInputType.GUN_LOADED].Held) {
-                if (e.Poses.Shooting) {
+                if (e.Poses.Shooting && _pointerEnabled) {
+
                     PressedInput(HandInputType.GUN_SHOOTING);
                 }
             }
@@ -208,11 +211,10 @@ public class HandInputManager : MonoBehaviour
     }
 
     private void OnAimChange(AimEventArgs e) {
-        if (e.HasAimingPoint && _mouseIdle) {
+        if (e.HasAimingPoint && _mouseIdle && _pointerEnabled) {
             if (_canvasRect) {
                 Vector2 new_pos = new Vector2(e.AimingPoint.x * _canvasRect.rect.width, e.AimingPoint.y * _canvasRect.rect.height/*canvas_rect.sizeDelta.y*/);
                 _pointer.anchoredPosition = new_pos;
-                _pointerPosition = _pointer.position;
             }
         }
     }
@@ -278,12 +280,27 @@ public class HandInputManager : MonoBehaviour
         }
     }
 
-    public Vector3 GetPointerPos3D() {
-        var pos = _pointer.position;
-        pos.z += Camera.main.nearClipPlane;
-        var worldPos = Camera.main.ScreenToWorldPoint(pos);
+    public Vector3 GetPointerPos3D(bool getScreenPoint = false) {
+        if (_pointerEnabled) {
+            var pos = _pointer.position;
+            pos.z += Camera.main.nearClipPlane;
+            if (!getScreenPoint) {
+                pos = Camera.main.ScreenToWorldPoint(pos);
+            }
 
-        return worldPos;
+            return pos;
+
+        } else return Vector3.zero;
+    }
+
+    public void EnablePointer() {
+        _pointer.gameObject.SetActive(true);
+        _pointerEnabled = true;
+    }
+
+    public void DisablePointer() {
+        _pointerEnabled = false;
+        _pointer.gameObject.SetActive(false);
     }
 
     public bool GetHandInput(HandInputType query) {

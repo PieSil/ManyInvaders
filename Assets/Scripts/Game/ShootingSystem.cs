@@ -10,6 +10,7 @@ public class ShootingSystem : MonoBehaviour {
     private int _projectileCount = 0;
 
     public Action<SpawnedProjectileEventArgs> SpawnedProjectileEvent;
+    public Action<EventArgs> EnemyKilledEvent;
 
     private void Start() {
         Projectile projectileComponent = _projectilePrefab.GetComponent<Projectile>();
@@ -47,6 +48,10 @@ public class ShootingSystem : MonoBehaviour {
         _projectileCount -= 1;
         if (_projectileCount < 0) {
             Debug.LogWarning($"Projectile count went below 0, is {_projectileCount}");
+        }
+
+        if (EnemyKilledEvent != null) {
+            EnemyKilledEvent(new EventArgs());
         }
     }
 

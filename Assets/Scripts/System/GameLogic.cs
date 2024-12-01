@@ -15,6 +15,8 @@ public class GameLogic : MonoBehaviour {
 
     private void Start() {
         StartCalibration();
+        _levelManager.NewScoreEvent += OnScoredPoint;
+        _levelManager.GameOverEvent += OnGameOver;
     }
 
     private void Update() {
@@ -42,7 +44,7 @@ public class GameLogic : MonoBehaviour {
     }
 
     public void StartGame() {
-        Debug.LogWarning("Starting game");
+
         if (CurState() != GameState.MAIN_MENU) {
             throw new System.Exception($"Expected game state to be MAIN_MENU, got {CurState()}");
         }
@@ -66,6 +68,10 @@ public class GameLogic : MonoBehaviour {
 
         OnNewState();
     }
+
+    public void GameOver() {
+
+    } 
 
     public void StartCalibration() {
         PushState(GameState.CALIBRATING);
@@ -117,32 +123,50 @@ public class GameLogic : MonoBehaviour {
 
     private void OnNewState() {
         var newState = CurState();
+        var systemState = SystemState.GetInstance();
 
         switch (newState) {
             case GameState.PAUSED:
-                SystemState.GetInstance().Pause();
-                SystemState.GetInstance().SetMouseEnabled(true);
+                systemState.Pause();
+                _handInputManager.EnablePointer();
+                systemState.SetMouseEnabled(true);
                 _uiManager.DrawPauseMenu();
                 break;
             case GameState.PLAYING:
-                SystemState.GetInstance().Resume();
-                SystemState.GetInstance().SetMouseEnabled(false);
+                systemState.Resume();
+                _handInputManager.EnablePointer();
+                systemState.SetMouseEnabled(false);
                 _uiManager.DrawGameUI();
                 break;
             case GameState.MAIN_MENU:
-                SystemState.GetInstance().Pause();
-                SystemState.GetInstance().SetMouseEnabled(true);
+                systemState.Pause();
+                _handInputManager.EnablePointer();
+                systemState.SetMouseEnabled(true);
                 _uiManager.DrawMainMenu(_highScore);
                 break;
             case GameState.CALIBRATING:
-                SystemState.GetInstance().Pause();
-                SystemState.GetInstance().SetMouseEnabled(false);
+                systemState.Pause();
+                _handInputManager.DisablePointer();
+                systemState.SetMouseEnabled(false);
                 _uiManager.DisableAllUIElements();
                 break;
             case GameState.CONTROLS:
-                SystemState.GetInstance().Pause();
-                SystemState.GetInstance().SetMouseEnabled(true);
+                systemState.Pause();
+                _handInputManager.EnablePointer();
+                systemState.SetMouseEnabled(true);
                 _uiManager.DrawControls();
+                break;
+            case GameState.GAME_OVER:
+                systemState.Pause();
+                _handInputManager.EnablePointer();
+                systemState.SetMouseEnabled(true);
+                _uiManager.DrawGameOver();
+                break;
+            case GameState.INTRO:
+                systemState.Pause();
+                _handInputManager.DisablePointer();
+                systemState.SetMouseEnabled(true);
+                // _uiManager.DrawControls();
                 break;
             default:
                 break;
@@ -159,6 +183,29 @@ public class GameLogic : MonoBehaviour {
     private void ClearStates() {
         _stateStack.Clear();
     }
+
+    private void OnScoredPoint(int score) {
+        if (score > _highScore) {
+            _highScore = score;
+        }
+    }
+
+    private void OnGameOver() {
+        _levelManager.Clear();
+
+        while (_stateStack.Count > 1) {
+            _stateStack.Pop();
+        }
+
+        var expectMainMenu = CurState();
+        
+        if (expectMainMenu != GameState.MAIN_MENU) {
+            Debug.LogError($"Expected MAIN_MENU as stack base when transitioning to GAME_OVER, got {expectMainMenu}");
+        }
+
+        PushState(GameState.GAME_OVER);
+        OnNewState();
+    }
 }
 
 public enum GameState {
@@ -168,5 +215,6 @@ public enum GameState {
     PAUSED,
     CALIBRATING,
     CONTROLS,
-    INTRO
+    INTRO,
+    GAME_OVER
 }

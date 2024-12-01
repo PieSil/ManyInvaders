@@ -6,8 +6,11 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour {
     [SerializeField] private RectTransform _top;
-    [SerializeField] private RectTransform _middleTop;
-    [SerializeField] private RectTransform _middleBottom;
+    [SerializeField] private RectTransform _middle;
+    [SerializeField] private RectTransform _middleLeft;
+    [SerializeField] private RectTransform _left;
+    [SerializeField] private RectTransform _middleRight;
+    [SerializeField] private RectTransform _right;
     [SerializeField] private RectTransform _bottom;
 
     [SerializeField] private List<UIElementTuple> _uiElementsList = new List<UIElementTuple>();
@@ -68,7 +71,8 @@ public class UIManager : MonoBehaviour {
 
         ActivateUIElement(UIElement.HIGH_SCORE_TEXT);
         ActivateUIElementWithPosition(UIElement.PLAY_BUTTON, _top);
-        ActivateUIElementWithPosition(UIElement.CALIBRATE_BUTTON, _middleTop);
+        ActivateUIElementWithPosition(UIElement.CALIBRATE_BUTTON, _middleLeft);
+        ActivateUIElementWithPosition(UIElement.CONTROLS_BUTTON, _middleRight);
         ActivateUIElementWithPosition(UIElement.QUIT_BUTTON, _bottom);
 
         if (_uiElements.ContainsKey(UIElement.HIGH_SCORE_TEXT)) {
@@ -82,8 +86,8 @@ public class UIManager : MonoBehaviour {
         DisableAllUIElements();
 
         ActivateUIElementWithPosition(UIElement.RESUME_BUTTON, _top);
-        ActivateUIElementWithPosition(UIElement.CALIBRATE_BUTTON, _middleTop);
-        ActivateUIElementWithPosition(UIElement.MAIN_MENU_BUTTON, _middleBottom);
+        ActivateUIElementWithPosition(UIElement.MAIN_MENU_BUTTON, _middleLeft);
+        ActivateUIElementWithPosition(UIElement.CALIBRATE_BUTTON, _middleRight);
         ActivateUIElementWithPosition(UIElement.QUIT_BUTTON, _bottom);
     }
 
@@ -95,21 +99,36 @@ public class UIManager : MonoBehaviour {
     public void DrawGameUI() {
         DisableAllUIElements();
 
+        ActivateUIElement(UIElement.SCORE_TEXT);
+        ActivateUIElement(UIElement.GAME_UI);
     }
+
+    public void DrawGameOver() {
+        DisableAllUIElements();
+
+        ActivateUIElement(UIElement.GAME_OVER);
+        ActivateUIElementWithPosition(UIElement.MAIN_MENU_BUTTON, _middle);
+        ActivateUIElementWithPosition(UIElement.QUIT_BUTTON, _bottom);
+    }
+
 }
 
 [Serializable]
 public enum UIElement {
     NONE,
     HIGH_SCORE_TEXT,
+    SCORE_TEXT,
     PLAY_BUTTON,
     RESUME_BUTTON,
     CALIBRATE_BUTTON,
     QUIT_BUTTON,
     MAIN_MENU_BUTTON,
-    CONTROLS,
+    CONTROLS_BUTTON,
+    CONTROLS_UI,
     OK_CONTROLS,
-    GAME_UI
+    GAME_UI,
+    GAME_OVER,
+    INTRO_TEXT,
 }
 
 [Serializable]

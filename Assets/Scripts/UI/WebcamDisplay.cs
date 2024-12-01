@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 public class WebcamDisplay : MonoBehaviour {
 
-    [SerializeField] private MultiHandLandmarkListAnnotationController _handLandmarksAnnotationController;
+    // [SerializeField] private MultiHandLandmarkListAnnotationController _handLandmarksAnnotationController;
     [SerializeField] private HandDetection _detector;
     private RawImage _display;
 
@@ -20,14 +20,14 @@ public class WebcamDisplay : MonoBehaviour {
         if (_display == null) {
             Debug.LogError("WebcamDisplay must be attached to RawImage component");
 
-            _detector.HandDetectionEvent -= OnHandLandmarksChanged;
+            // _detector.HandDetectionEvent -= OnHandLandmarksChanged;
             _detector.TrackerInitedEvent -= OnTrackerInited;
             Destroy(this);
             return;
         }
 
         if (_display.enabled) {
-            _detector.HandDetectionEvent += OnHandLandmarksChanged;
+            // _detector.HandDetectionEvent += OnHandLandmarksChanged;
         }
 
         _detector.TrackerInitedEvent += OnTrackerInited;
@@ -43,9 +43,11 @@ public class WebcamDisplay : MonoBehaviour {
         }
     }
 
+    /*
     private void OnHandLandmarksChanged(HandDetectionEventArgs args) {
         _handLandmarksAnnotationController.DrawNow(args.DetectionData.Landmarks);
     }
+    */
 
     private void OnTrackerInited(EventArgs args) {
 
@@ -67,10 +69,10 @@ public class WebcamDisplay : MonoBehaviour {
     private void ToggleDisplayWebCam() {
         _display.enabled = !_display.enabled;
         if (_display.enabled) {
-            _detector.HandDetectionEvent += OnHandLandmarksChanged;
+            // _detector.HandDetectionEvent += OnHandLandmarksChanged;
         } else { 
-            _detector.HandDetectionEvent -= OnHandLandmarksChanged;
-            _handLandmarksAnnotationController.DrawNow(null);
+            // _detector.HandDetectionEvent -= OnHandLandmarksChanged;
+            // _handLandmarksAnnotationController.DrawNow(null);
         }
     }
 

@@ -75,14 +75,11 @@ public class EnemyPlane : MonoBehaviour {
         var topLeft = corners[1];
         topLeft.x /= _planeRectTransform.localScale.x;
         topLeft.y /= _planeRectTransform.localScale.y;
-        Debug.Log($"bottom left: {topLeft}");
 
         foreach (ValueTuple<int, int> gridIndices in _pattern) {
             var pos = topLeft;
             // gridIndices[0] == col index
             // gridIndices[1] == row index
-            Debug.Log($"left is: {GetScreenLeftOffset()}");
-            Debug.Log($"top is: {GetScreenTopOffset()}");
             pos.x = (GetScreenLeftOffset() + ((float)gridIndices.Item2 + 1) * (_x_offset) + (_referenceSlot.Width / 2.0f) + (float)gridIndices.Item2 * _referenceSlot.Width);
             pos.y = (GetScreenTopOffset() - ((float)gridIndices.Item1 + 1) * (_y_offset) - (_referenceSlot.Height / 2.0f) - (float)gridIndices.Item1 * _referenceSlot.Height);
 

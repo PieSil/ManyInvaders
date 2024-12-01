@@ -1,20 +1,29 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
+using UnityEngine.UI;
 using UnityEngine.UIElements;
 
 public class LevelManager : MonoBehaviour {
     [SerializeField] private RectTransform _referenceScreenTransform;
     [SerializeField] private ShootingSystem _shootingSystem;
+    [SerializeField] private UnityEngine.UI.Image _hurtScreen;
     [SerializeField] private float _startDepth = 400.0f;
     [SerializeField] private float _endDepth = 100.0f;
-    [SerializeField][Min(0.0000001f)] private float _spawnPeriodSeconds = 20.0f;
+    [SerializeField][Min(0.0000001f)] private float _baseSpawnPeriodSeconds = 20.0f;
     [SerializeField] private int _nSteps = 3;
     [SerializeField] private GameObject _enemyPlanePrefab;
-    [SerializeField] private List<EnemyPlane> _spawnedEnemyPlanes;
+    private List<EnemyPlane> _spawnedEnemyPlanes = new List<EnemyPlane>();
     [SerializeField] private List<SpawnGrid> _patterns = new List<SpawnGrid>();
-    [SerializeField] private int _maxPlayerLives = 3;
+    [SerializeField] private List<int> _scoreThresholds = new List<int>();
+    [SerializeField] private List<float> _updatedSpawnPeriods = new List<float>();
+    private float _spawnPeriodSeconds;
+    private int _nextScoreThreshIdx = 0;
+
+    private int _maxPlayerLives = 3;
     private bool _levelOngoing = false;
     private float _spawnTimer = 0;
     private int _curScore = 0;
@@ -24,32 +33,72 @@ public class LevelManager : MonoBehaviour {
     private int _curPattern = 0;
 
     // Start is called before the first frame update
+
+    public Action<int> NewScoreEvent;
+    public Action<int> PLayerLifeEvent;
+    public Action GameOverEvent;
     void Start() {
+        _spawnPeriodSeconds = _baseSpawnPeriodSeconds;
         Canvas _prefabCanvas = _enemyPlanePrefab.GetComponent<Canvas>();
         EnemyPlane _enemyPlane = _enemyPlanePrefab.GetComponent<EnemyPlane>();
         RectTransform _rectTransform = _enemyPlanePrefab.GetComponent<RectTransform>();
 
         if (_prefabCanvas == null) {
             string msg = "Prefab has no Canvas component";
-            Debug.LogError(msg);
             throw new System.Exception(msg);
         }
 
         if (_enemyPlane == null) {
             string msg = "Prefab has no EnemyPlane component";
-            Debug.LogError(msg);
             throw new System.Exception(msg);
         }
 
         if (_rectTransform == null) {
             string msg = "Prefab has no RectTransform component";
-            Debug.LogError(msg);
             throw new System.Exception(msg);
         }
 
+        if (_hurtScreen == null) {
+            string msg = "No HurtScreen (Image) component";
+            throw new System.Exception(msg);
+        }
+
+        ComputeStepAndSpeed();
+
+        if (_updatedSpawnPeriods.Count < 0) {
+            Debug.LogWarning("Speeds list is empty");
+            _updatedSpawnPeriods.Add(_baseSpawnPeriodSeconds);
+        }
+
+        if (_updatedSpawnPeriods.Count < _scoreThresholds.Count) {
+            Debug.LogWarning($"More score thresholds than updated spawn periods, score thresholds in excess won't have any effect");
+        }
+
+        while (_updatedSpawnPeriods.Count < _scoreThresholds.Count) {
+            _updatedSpawnPeriods.Add(_updatedSpawnPeriods.FindLast(a => true));
+        }
+
+        SetNextPatternIndex();
+    }
+
+    private void ComputeStepAndSpeed() {
         _moveStep = Mathf.Abs((_endDepth - _startDepth) / (float)_nSteps);
         _speed = _moveStep / _spawnPeriodSeconds;
+        Debug.LogWarning($"Enemy speed is now: {_speed}");
+    }
 
+    private void CheckSpeedUpdate() {
+        if (_nextScoreThreshIdx < _scoreThresholds.Count) {
+            if (_curScore >= _scoreThresholds[_nextScoreThreshIdx]) {
+                _spawnPeriodSeconds = _updatedSpawnPeriods[_nextScoreThreshIdx];
+                ComputeStepAndSpeed();
+                _nextScoreThreshIdx++;
+            }
+        }
+    }
+
+    private void SetNextPatternIndex() {
+        _curPattern = UnityEngine.Random.Range((int)0, (int)_patterns.Count);
     }
 
     private void InstanceEnemyPlane() {
@@ -59,20 +108,6 @@ public class LevelManager : MonoBehaviour {
         enemyPlaneCanvas.worldCamera = Camera.main;
 
         RectTransform enemyPlaneTransform = _enemyPlaneObject.GetComponent<RectTransform>();
-
-        // Copy RectTransform properties from the ReferenceTransform
-        /*
-        enemyPlaneTransform.anchorMin = _referenceScreenTransform.anchorMin;
-        enemyPlaneTransform.anchorMax = _referenceScreenTransform.anchorMax;
-        enemyPlaneTransform.anchoredPosition = _referenceScreenTransform.anchoredPosition;
-        enemyPlaneTransform.sizeDelta = _referenceScreenTransform.sizeDelta;
-        enemyPlaneTransform.pivot = _referenceScreenTransform.pivot;
-        enemyPlaneTransform.localScale = _referenceScreenTransform.localScale;
-        enemyPlaneTransform.position = _referenceScreenTransform.position;
-        */
-
-        // now edit them as needed
-        // enemyPlaneTransform.position = new Vector3(enemyPlaneTransform.position.x, enemyPlaneTransform.position.y, _startDepth);
 
         float frustumPlaneDepth = 100.0f;
         float height = 2.0f * frustumPlaneDepth * Mathf.Tan(Camera.main.fieldOfView * 0.5f * Mathf.Deg2Rad);
@@ -86,17 +121,13 @@ public class LevelManager : MonoBehaviour {
         enemyPlane.EnemyPlaneDestoyed += OnPlaneDestroyed;
         _spawnedEnemyPlanes.Add(enemyPlane);
         enemyPlane.Init(_patterns[_curPattern]);
-        _curPattern = (_curPattern + 1) % _patterns.Count;
+        SetNextPatternIndex();
         enemyPlane.SpawnAll();
         enemyPlane.AssignAlpha(GetDepthAlpha(enemyPlane.transform.position.z));
     }
 
     private void OnPlaneDestroyed(EnemyPlaneDestroyedEventArgs args) {
         int index = _spawnedEnemyPlanes.FindIndex(element => element == args.Plane);
-
-        if (index == 0) {
-            // was on top of stack, do something...
-        }
 
         _spawnedEnemyPlanes.RemoveAt(index);
 
@@ -123,6 +154,14 @@ public class LevelManager : MonoBehaviour {
 
             if (toDelete != null) {
                 DespawnEnemyPlane(toDelete);
+                _playerLives--;
+                if (_playerLives < 0) {
+                    _playerLives = 0;
+                }
+                if (PLayerLifeEvent != null) {
+                    PLayerLifeEvent(_playerLives);
+                }
+                ShowHurtScreen();
             }
 
             _spawnTimer += Time.deltaTime;
@@ -130,28 +169,81 @@ public class LevelManager : MonoBehaviour {
                 _spawnTimer = 0;
                 InstanceEnemyPlane();
             }
+
+            if (_playerLives <= 0 && GameOverEvent != null) {
+                GameOverEvent();
+            }
         }
 
     }
 
     public void Clear() {
 
+        _shootingSystem.EnemyKilledEvent -= OnEnemyKiled;
         _levelOngoing = false;
 
         foreach (var enemyPlane in _spawnedEnemyPlanes) {
             DespawnEnemyPlane(enemyPlane);
         }
 
+        _nextScoreThreshIdx = 0;
+        _spawnPeriodSeconds = _baseSpawnPeriodSeconds;
         _spawnedEnemyPlanes.Clear();
         _curPattern = 0;
         _playerLives = _maxPlayerLives;
         _curScore = 0;
         _spawnTimer = _spawnPeriodSeconds;
+        if (PLayerLifeEvent != null) {
+            PLayerLifeEvent(_playerLives);
+        }
+
+        ComputeStepAndSpeed();
+    }
+
+    private void OnEnemyKiled(EventArgs args) {
+        _curScore++;
+        if (NewScoreEvent != null ) {
+            NewScoreEvent(_curScore);
+        }
+        CheckSpeedUpdate();
     }
 
     public void StartLevel() {
         Clear();
+        SetNextPatternIndex();
+
+        _shootingSystem.EnemyKilledEvent += OnEnemyKiled;
         _levelOngoing = true;
+
+        if (NewScoreEvent != null) {
+            NewScoreEvent(_curScore);
+        }
+
+        if (PLayerLifeEvent != null) {
+            PLayerLifeEvent(_playerLives);
+        }
+    }
+
+    private void ShowHurtScreen() {
+        var color = _hurtScreen.color;
+        color.a = 0.2f;
+        _hurtScreen.color = color;
+        StartCoroutine(ClearHurtScreen());
+    }
+
+    private IEnumerator ClearHurtScreen() {
+       
+        var color = _hurtScreen.color;
+
+        do {
+            yield return new WaitForSeconds(0.1f);
+            color = _hurtScreen.color;
+            color.a -= 0.05f;
+            if (color.a < 0) {
+                color.a = 0;
+            }
+            _hurtScreen.color = color;
+        } while (color.a > 0);
     }
 
     private void DespawnEnemyPlane(EnemyPlane enemyPlane) {

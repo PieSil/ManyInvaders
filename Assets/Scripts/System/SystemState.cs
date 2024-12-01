@@ -31,4 +31,5 @@ public class SystemState {
     public void SetMouseEnabled(bool enabled) {
         _mouseEnabled = enabled;
     }
+
 }
