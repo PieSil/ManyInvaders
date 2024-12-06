@@ -80,6 +80,11 @@ public class GameLogic : MonoBehaviour {
         _calibrator.ResetCalibration();
     }
 
+    public void ShowControls() {
+        PushState(GameState.CONTROLS);
+        OnNewState();
+    }
+
     public void GoBackOneState() {
         PopState();
         OnNewState();

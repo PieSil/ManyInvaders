@@ -8,6 +8,7 @@ public class ShootingSystem : MonoBehaviour {
     [SerializeField] private GameObject _projectilePrefab;
     private bool _reloading = false;
     private int _projectileCount = 0;
+    private List<Projectile> _spawnedProjectiles = new List<Projectile>();
 
     public Action<SpawnedProjectileEventArgs> SpawnedProjectileEvent;
     public Action<EventArgs> EnemyKilledEvent;
@@ -27,7 +28,7 @@ public class ShootingSystem : MonoBehaviour {
                 spawnPos.z += 10.0f;
                 var spawnedObject = Instantiate(_projectilePrefab, spawnPos, Quaternion.LookRotation(ComputeShootingDirection(pointerPos)));
                 Projectile spawnedProjectile = spawnedObject.GetComponent<Projectile>();
-                _projectileCount++;
+                _spawnedProjectiles.Add(spawnedProjectile);
                 spawnedProjectile.EnemyKilledEvent += OnEnemyKilled;
                 if (SpawnedProjectileEvent != null) { 
                     SpawnedProjectileEvent(new SpawnedProjectileEventArgs(spawnedProjectile));
@@ -44,15 +45,30 @@ public class ShootingSystem : MonoBehaviour {
         return pointerPos - Camera.main.transform.position;
     }
 
-    private void OnEnemyKilled(EventArgs args) {
-        _projectileCount -= 1;
-        if (_projectileCount < 0) {
-            Debug.LogWarning($"Projectile count went below 0, is {_projectileCount}");
+    private void OnEnemyKilled(Projectile proj) {
+
+        int index = _spawnedProjectiles.FindIndex(element => element == proj);
+        if (index < 0) {
+            index = _spawnedProjectiles.FindIndex(element => element == null);
+        }
+
+        if (index > -1) {
+            _spawnedProjectiles.RemoveAt(index);
         }
 
         if (EnemyKilledEvent != null) {
             EnemyKilledEvent(new EventArgs());
         }
+    }
+
+    public void ClearProjectiles() {
+        foreach (Projectile proj in _spawnedProjectiles) {
+            if (proj != null) {
+                Destroy(proj.gameObject);
+            }
+        }
+
+        _spawnedProjectiles.Clear();
     }
 
 }

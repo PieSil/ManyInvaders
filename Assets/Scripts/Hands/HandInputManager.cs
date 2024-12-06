@@ -121,6 +121,7 @@ public class HandInputManager : MonoBehaviour
     [SerializeField] AimCalibrator _calibrator;
     [SerializeField] RectTransform _pointer;
     [SerializeField] RectTransform _canvasRect;
+    [SerializeField] UIManager _uIManager;
     private Dictionary<HandInputType, InputState> _inputMap = new Dictionary<HandInputType, InputState>();
     private bool _pointerEnabled = true;
 
@@ -252,6 +253,8 @@ public class HandInputManager : MonoBehaviour
                _inputMap[inputType] = _inputMap[inputType].Released(inputType);
             }
         }
+
+        _uIManager.DrawHandState(pressedInputType);
     }
 
     private void StopDelayedInputTimer() {

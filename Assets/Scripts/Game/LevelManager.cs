@@ -128,8 +128,14 @@ public class LevelManager : MonoBehaviour {
 
     private void OnPlaneDestroyed(EnemyPlaneDestroyedEventArgs args) {
         int index = _spawnedEnemyPlanes.FindIndex(element => element == args.Plane);
+        if (index < 0) {
+            index = _spawnedEnemyPlanes.FindIndex(element => element == null);
+        }
 
-        _spawnedEnemyPlanes.RemoveAt(index);
+        if (index > -1) {
+            _spawnedEnemyPlanes.RemoveAt(index);
+        }
+        
 
     }
 
@@ -179,6 +185,7 @@ public class LevelManager : MonoBehaviour {
 
     public void Clear() {
 
+        _shootingSystem.ClearProjectiles();
         _shootingSystem.EnemyKilledEvent -= OnEnemyKiled;
         _levelOngoing = false;
 

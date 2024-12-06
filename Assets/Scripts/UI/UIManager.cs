@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class UIManager : MonoBehaviour {
     [SerializeField] private RectTransform _top;
@@ -94,6 +95,8 @@ public class UIManager : MonoBehaviour {
     public void DrawControls() {
         DisableAllUIElements();
 
+        ActivateUIElement(UIElement.CONTROLS_UI);
+        ActivateUIElement(UIElement.BACK_BUTTON);
     }
 
     public void DrawGameUI() {
@@ -101,6 +104,7 @@ public class UIManager : MonoBehaviour {
 
         ActivateUIElement(UIElement.SCORE_TEXT);
         ActivateUIElement(UIElement.GAME_UI);
+        ActivateUIElement(UIElement.ESC_PROMPT);
     }
 
     public void DrawGameOver() {
@@ -109,6 +113,25 @@ public class UIManager : MonoBehaviour {
         ActivateUIElement(UIElement.GAME_OVER);
         ActivateUIElementWithPosition(UIElement.MAIN_MENU_BUTTON, _middle);
         ActivateUIElementWithPosition(UIElement.QUIT_BUTTON, _bottom);
+    }
+
+    public void DrawHandState(HandInputType inputType) {
+        if (inputType == HandInputType.NONE || inputType == HandInputType.HAND_LOST) {
+            ActivateUIElement(UIElement.HAND_STATE);
+            if (_uiElements.ContainsKey(UIElement.HAND_STATE)) {
+                GameObject handState = _uiElements[UIElement.HAND_STATE];
+                UnityEngine.UI.Image handStateImage = handState.GetComponent<UnityEngine.UI.Image>();
+                if (handStateImage != null) {
+                    if (inputType == HandInputType.NONE) {
+                        handStateImage.color = Color.red;
+                    } else if (inputType == HandInputType.HAND_LOST) {
+                        handStateImage.color = Color.blue;
+                    }
+                }
+            }
+        } else {
+            DisableUIElement(UIElement.HAND_STATE);
+        }
     }
 
 }
@@ -129,6 +152,9 @@ public enum UIElement {
     GAME_UI,
     GAME_OVER,
     INTRO_TEXT,
+    ESC_PROMPT,
+    HAND_STATE,
+    BACK_BUTTON
 }
 
 [Serializable]

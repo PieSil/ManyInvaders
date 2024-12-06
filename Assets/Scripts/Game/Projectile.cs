@@ -8,7 +8,7 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float _speed = 5.0f;
     [SerializeField] private float _maxDepth = 500.0f;
 
-    public Action<EventArgs> EnemyKilledEvent;
+    public Action<Projectile> EnemyKilledEvent;
 
     void Update() {
         if (!SystemState.GetInstance().IsPaused) {
@@ -27,7 +27,7 @@ public class Projectile : MonoBehaviour
         Destroy(gameObject);
 
         if (EnemyKilledEvent != null) {
-            EnemyKilledEvent(new EventArgs());
+            EnemyKilledEvent(this);
         }
     }
 
