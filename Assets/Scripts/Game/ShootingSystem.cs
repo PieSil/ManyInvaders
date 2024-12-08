@@ -29,6 +29,10 @@ public class ShootingSystem : MonoBehaviour {
                 var spawnedObject = Instantiate(_projectilePrefab, spawnPos, Quaternion.LookRotation(ComputeShootingDirection(pointerPos)));
                 Projectile spawnedProjectile = spawnedObject.GetComponent<Projectile>();
                 _spawnedProjectiles.Add(spawnedProjectile);
+                AudioSource audioSource = GetComponent<AudioSource>();
+                if (audioSource != null) {
+                    audioSource.Play();
+                }
                 spawnedProjectile.EnemyKilledEvent += OnEnemyKilled;
                 if (SpawnedProjectileEvent != null) { 
                     SpawnedProjectileEvent(new SpawnedProjectileEventArgs(spawnedProjectile));

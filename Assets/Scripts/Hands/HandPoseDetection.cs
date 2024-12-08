@@ -4,7 +4,7 @@ using Mediapipe.Unity.HandDetection;
 using System;
 using System.Collections.Generic;
 using TMPro;
-using UnityEditor.Experimental.GraphView;
+// using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class HandPoseDetection : MonoBehaviour {

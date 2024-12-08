@@ -13,18 +13,33 @@ public class UIManager : MonoBehaviour {
     [SerializeField] private RectTransform _middleRight;
     [SerializeField] private RectTransform _right;
     [SerializeField] private RectTransform _bottom;
-
+    [SerializeField] private List<GameObject> _introObjects = new List<GameObject>();
     [SerializeField] private List<UIElementTuple> _uiElementsList = new List<UIElementTuple>();
     private Dictionary<UIElement, GameObject> _uiElements = new Dictionary<UIElement, GameObject>();
+    private int _curIntroIdx = 0;
+    private bool _inited = false;
 
     private void Start() {
-        foreach (var element in _uiElementsList) {
-            if (element.Item2 != null) {
-                if (!_uiElements.ContainsKey(element.Item1)) {
-                    _uiElements.Add(element.Item1, element.Item2);
+        Init();
+    }
+
+    public void Init() {
+        if (!_inited) {
+            foreach (var element in _uiElementsList) {
+                if (element.Item2 != null) {
+                    if (!_uiElements.ContainsKey(element.Item1)) {
+                        _uiElements.Add(element.Item1, element.Item2);
+                    }
+                    element.Item2.SetActive(false);
                 }
-                element.Item2.SetActive(false);
             }
+
+            foreach (var obj in _introObjects) {
+                if (obj != null) {
+                    obj.SetActive(false);
+                }
+            }
+            _inited = true;
         }
     }
 
@@ -134,6 +149,29 @@ public class UIManager : MonoBehaviour {
         }
     }
 
+    public void DrawCalibration() {
+        DisableAllUIElements();
+
+        ActivateUIElement(UIElement.CALIBRATION_UI);
+    }
+
+    public bool DrawNextIntro() {
+        if (_curIntroIdx > 0) {
+            _introObjects[_curIntroIdx - 1].SetActive(false);
+        } else if (_curIntroIdx == 0) {
+            ActivateUIElement(UIElement.SPACEBAR_PROMPT);
+        }
+
+        if (_curIntroIdx < _introObjects.Count) {
+            _introObjects[_curIntroIdx].SetActive(true);
+            _curIntroIdx++;
+            return false;
+        } else {
+            DisableUIElement(UIElement.SPACEBAR_PROMPT);
+            return true;
+        }
+    }
+
 }
 
 [Serializable]
@@ -154,7 +192,9 @@ public enum UIElement {
     INTRO_TEXT,
     ESC_PROMPT,
     HAND_STATE,
-    BACK_BUTTON
+    BACK_BUTTON,
+    CALIBRATION_UI,
+    SPACEBAR_PROMPT
 }
 
 [Serializable]

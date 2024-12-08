@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
+// using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class GameLogic : MonoBehaviour {
@@ -10,13 +10,28 @@ public class GameLogic : MonoBehaviour {
     [SerializeField] private UIManager _uiManager;
     [SerializeField] private LevelManager _levelManager;
     [SerializeField] private HandInputManager _handInputManager;
+    [SerializeField] private AudioClip _menuMusic;
+    [SerializeField] private AudioClip _gameMusic;
+    private AudioSource _audioSource;
     private Stack<GameState> _stateStack = new Stack<GameState>();
     private int _highScore = 0;
 
     private void Start() {
-        StartCalibration();
+        // StartCalibration();
+        _audioSource = GetComponent<AudioSource>();
+        if (_audioSource == null) {
+            Debug.LogError("No audio source");
+        }
+
+        _uiManager.Init();
+        SystemState.GetInstance().Pause();
+        PushState(GameState.INTRO);
+        PlayBGM(_menuMusic);
+        NextIntro();
         _levelManager.NewScoreEvent += OnScoredPoint;
         _levelManager.GameOverEvent += OnGameOver;
+
+        _audioSource = GetComponent<AudioSource>();
     }
 
     private void Update() {
@@ -24,10 +39,13 @@ public class GameLogic : MonoBehaviour {
             PauseGame();
         } else if (CurState() == GameState.PAUSED && Input.GetKeyDown(KeyCode.Escape)) {
             ResumeGame();
+        } else if (CurState() == GameState.INTRO && (Input.GetKeyDown(KeyCode.Space))) {
+            NextIntro();
         }
     }
 
     public void PauseGame() {
+        PlayBGM(_menuMusic);
         if (CurState() != GameState.PAUSED) {
             PushState(GameState.PAUSED);
             OnNewState();
@@ -35,6 +53,7 @@ public class GameLogic : MonoBehaviour {
     }
 
     public void ResumeGame() {
+        PlayBGM(_gameMusic);
         GameState expectPaused = PopState();
         OnNewState();
 
@@ -44,7 +63,7 @@ public class GameLogic : MonoBehaviour {
     }
 
     public void StartGame() {
-
+        PlayBGM(_gameMusic);
         if (CurState() != GameState.MAIN_MENU) {
             throw new System.Exception($"Expected game state to be MAIN_MENU, got {CurState()}");
         }
@@ -55,6 +74,7 @@ public class GameLogic : MonoBehaviour {
     }
 
     public void GoToMainMenu() {
+        PlayBGM(_menuMusic);
 
         _levelManager.Clear();
 
@@ -69,11 +89,20 @@ public class GameLogic : MonoBehaviour {
         OnNewState();
     }
 
-    public void GameOver() {
+    private void NextIntro() {
+        bool introIsOver = _uiManager.DrawNextIntro();
+        if (introIsOver) {
+            PopState();
+            StartCalibration();
+        }
+    }
 
+    public void GameOver() {
+        PlayBGM(_menuMusic);
     } 
 
     public void StartCalibration() {
+        PlayBGM(_menuMusic);
         PushState(GameState.CALIBRATING);
         OnNewState();
         _calibrator.CalibrationDone += OnCalibrationDone;
@@ -81,6 +110,7 @@ public class GameLogic : MonoBehaviour {
     }
 
     public void ShowControls() {
+        PlayBGM(_menuMusic);
         PushState(GameState.CONTROLS);
         OnNewState();
     }
@@ -153,7 +183,7 @@ public class GameLogic : MonoBehaviour {
                 systemState.Pause();
                 _handInputManager.DisablePointer();
                 systemState.SetMouseEnabled(false);
-                _uiManager.DisableAllUIElements();
+                _uiManager.DrawCalibration();
                 break;
             case GameState.CONTROLS:
                 systemState.Pause();
@@ -210,6 +240,13 @@ public class GameLogic : MonoBehaviour {
 
         PushState(GameState.GAME_OVER);
         OnNewState();
+    }
+
+    private void PlayBGM(AudioClip bgm) {
+        if (_audioSource.clip != bgm) { 
+            _audioSource.clip = bgm;
+            _audioSource.Play();
+        }
     }
 }
 

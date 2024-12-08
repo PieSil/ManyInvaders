@@ -84,7 +84,6 @@ public class LevelManager : MonoBehaviour {
     private void ComputeStepAndSpeed() {
         _moveStep = Mathf.Abs((_endDepth - _startDepth) / (float)_nSteps);
         _speed = _moveStep / _spawnPeriodSeconds;
-        Debug.LogWarning($"Enemy speed is now: {_speed}");
     }
 
     private void CheckSpeedUpdate() {
@@ -166,6 +165,10 @@ public class LevelManager : MonoBehaviour {
                 }
                 if (PLayerLifeEvent != null) {
                     PLayerLifeEvent(_playerLives);
+                }
+                AudioSource audioSource = GetComponent<AudioSource>();
+                if (audioSource != null) {
+                    audioSource.Play();
                 }
                 ShowHurtScreen();
             }

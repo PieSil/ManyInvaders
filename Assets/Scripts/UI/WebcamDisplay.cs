@@ -37,12 +37,6 @@ public class WebcamDisplay : MonoBehaviour {
         }
     }
 
-    private void Update() {
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            ToggleDisplayWebCam();
-        }
-    }
-
     /*
     private void OnHandLandmarksChanged(HandDetectionEventArgs args) {
         _handLandmarksAnnotationController.DrawNow(args.DetectionData.Landmarks);
