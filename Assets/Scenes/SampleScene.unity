@@ -1966,8 +1966,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: The goal is to shoot as many aliens as you can before they reach you, good
-    luck!
+  m_text: The goal is to shoot as many aliens as you can before they reach you.
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -5883,7 +5882,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Welcome, this brief introduction will explain basic informations and controls.
+  m_text: Welcome to ManyInvaders! This brief introduction will explain basic information
+    and controls.
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -7549,11 +7549,11 @@ MonoBehaviour:
   _introObjects:
   - {fileID: 1350737863}
   - {fileID: 715294553}
+  - {fileID: 1347925039}
   - {fileID: 274891947}
   - {fileID: 1856782770}
   - {fileID: 802999692}
   - {fileID: 1999704848}
-  - {fileID: 1347925039}
   - {fileID: 1909094370}
   _uiElementsList:
   - _elementName: 1
