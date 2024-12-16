@@ -47,7 +47,7 @@ public class AimCalibrator : MonoBehaviour {
 
     private Vector2 _startPos;
     private List<Vector2> _detectedValues = new List<Vector2>();
-    private float _closePointsMaxDist = 0.5f;
+    private float _closePointsMaxDist = 1.0f;
 
     private float _calibrationStartTime = -1.0f;
     private float _calibrationSeconds = 3.0f;
@@ -177,7 +177,7 @@ public class AimCalibrator : MonoBehaviour {
             CheckStartCalibrationStep();
 
             bool skip_this = false;
-            if (!e.HasAimingPoint || !(_inputManager.GetHandInput(HandInputType.GUN_SHOOTING) || _inputManager.GetHandInput(HandInputType.GUN_LOADED))) {
+            if (!e.HasAimingPoint /*|| !(_inputManager.GetHandInput(HandInputType.GUN_SHOOTING) || _inputManager.GetHandInput(HandInputType.GUN_LOADED))*/) {
                 skip_this = true;
                 _nLost += 1;
             } else {
@@ -214,6 +214,7 @@ public class AimCalibrator : MonoBehaviour {
             } else if (_nLost > _maxSubsequentLosses) {
                 // lost hand
                 StopCalibrationStep();
+                _nLost = 0;
             }
 
             if (_curActiveAnchorImg != null) {
