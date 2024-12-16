@@ -163,21 +163,6 @@ namespace Mediapipe.Unity.HandDetection {
                 if (handednessPacket != null) {
                     _handedness = handednessPacket.Get(ClassificationList.Parser);
                     
-                    /*
-                    int i = 0;
-                    foreach (var item in _handedness) {
-
-                        //flip hand labels in classification as I did not find a better solution
-                        //there is a better way to handle this for sure but I'm in a hurry
-
-                        foreach (var classification in item.Classification) {
-                            // classification.Label = FlipLabel(classification.Label);
-                            /Debug.Log($"handedness item {i} is: {item}");
-                        }
-                        i++;
-                    }
-                    */
-                    
                 } else {
                     _handedness = null;
                 }
