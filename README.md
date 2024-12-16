@@ -1,6 +1,5 @@
 # ManyInvaders
 
-*ManyInvaders* is a simple video game I developed for the *Image Processing and Computer Vision* course at the Politecnico di Torino.
-It's a tower defense game where the interaction is entirely based on hand gestures.
+**ManyInvaders** is a dynamic and innovative video game I created as part of the* Image Processing and Computer Vision* course at *Politecnico di Torino*. This tower defense game takes interaction to the next level by relying entirely on hand gestures for control.
 
-Aim at your enemies with your finger, do the "gun" hand gesture and eliminate them before they reach you!
+Take aim at your enemies with a simple finger point, form a "gun" gesture with your hand, and shoot them down before they reach you!
